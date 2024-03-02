@@ -1,0 +1,9 @@
+*.o
+*.a
+.libs
+.dependencies
+Makefile
+*.exe
+.deps
+.dirstamp
+

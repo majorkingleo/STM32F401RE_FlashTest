@@ -1,0 +1,7 @@
+EXE=libcpputilsio.a
+
+all: $(EXE)
+
+libcpputilsio.a: $(OFILES)
+	ar r libcpputilsio.a $(OFILES)
+
