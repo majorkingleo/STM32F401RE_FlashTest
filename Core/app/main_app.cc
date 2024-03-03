@@ -13,6 +13,8 @@
 #include <string.h>
 #include <memory>
 
+#include <stm32_internal_flash/stm32f4xx_hal/stm32_internal_flash.h>
+
 using namespace Tools;
 
 volatile uint8_t flashFsData[48*1024] __attribute__ ((section(".flashfs_data")));
@@ -92,14 +94,89 @@ void Write_Flash( const std::span<std::byte,16*1024> & buffer )
 	HAL_FLASH_Lock();
 }
 
+
+/*
+ * Flash module organization (STM32F401xB/C and STM32F401xD/E)
+ * Block Name Block base addresses Size
+ *
+ * Sector 0 0x0800 0000 - 0x0800 3FFF 16 Kbytes
+ * Sector 1 0x0800 4000 - 0x0800 7FFF 16 Kbytes
+ * Sector 2 0x0800 8000 - 0x0800 BFFF 16 Kbytes
+ * Sector 3 0x0800 C000 - 0x0800 FFFF 16 Kbytes
+ * Sector 4 0x0801 0000 - 0x0801 FFFF 64 Kbytes
+ * Sector 5 0x0802 0000 - 0x0803 FFFF 128 Kbytes
+ * Sector 6 0x0804 0000 - 0x0805 FFFF 128 Kbytes
+ * Sector 7 0x0806 0000 - 0x0807 FFFF 128 Kbytes
+ */
+
+void test_internal_flash_driver_raw()
+{
+	using namespace smt32_internal_flash;
+
+	Configuration::Sector sectors[] = {
+	  {
+		FLASH_SECTOR_1,
+		16*1024,
+		0x08004000
+	  },
+	  {
+		FLASH_SECTOR_2,
+		16*1024,
+		0x08008000
+	  },
+	  {
+		FLASH_SECTOR_3,
+		16*1024,
+		0x0800C000
+	  },
+	};
+
+	Configuration conf;
+	conf.data_ptr = reinterpret_cast<std::byte*>(&_flashfs_data_start);
+	conf.used_sectors = sectors;
+
+	static std::array<std::byte,16*1024> buffer{};
+	snprintf( (char*)buffer.data(), buffer.size(), "%s", "Hello World2" );
+
+	STM32InternalFlashHal raw_driver( conf );
+
+	if( !raw_driver ) {
+		CPPDEBUG( "initializing raw driver failed" );
+		return;
+	}
+
+	CPPDEBUG( "erasing" );
+	if( !raw_driver.erase_page_by_page_startaddress( sectors[0].start_address, sectors[0].size ) ) {
+		CPPDEBUG( "erasing page failed" );
+		return;
+	}
+
+	CPPDEBUG( "writing" );
+	std::size_t data_written = raw_driver.write_page(0, buffer);
+	if( data_written != buffer.size() ) {
+		CPPDEBUG( "writing page failed" );
+		return;
+	}
+
+	CPPDEBUG( "reading" );
+	static std::array<std::byte,100> read_buffer{};
+	std::span<std::byte> sread_buffer( read_buffer );
+	raw_driver.read_page( 0, sread_buffer );
+
+	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+}
+
 void main_app()
 {
 	SimpleOutDebug out_debug;
 	Tools::x_debug = &out_debug;
 
+	CPPDEBUG( "start" );
+
 	std::array<std::byte,16*1024> buffer{};
 	snprintf( (char*)buffer.data(), buffer.size(), "%s", "Hello World" );
 
+#if 0
 	void *ta = reinterpret_cast<std::byte*>(&_flashfs_data_start);
 	std::byte *te = reinterpret_cast<std::byte*>(&_flashfs_data_end);
 	CPPDEBUG( format( "target address: %p", ta ) );
@@ -117,6 +194,10 @@ void main_app()
 	memcpy( acBuffer, (void*)flashFsData, 100 );
 	acBuffer[99]='\0';
 	CPPDEBUG( acBuffer );
+#endif
+
+	test_internal_flash_driver_raw();
+
 
 	while( true ) {}
 }

@@ -25,9 +25,24 @@ struct Configuration
 	};
 
 	std::span<Sector> used_sectors{};
+	std::byte* data_ptr = nullptr;
+
 	uint32_t voltage_range = VOLTAGE_RANGE_3;
 	uint32_t banks = FLASH_BANK_1;
-	std::byte* data_ptr = nullptr;
+
+	std::size_t size = 0; // full size, calculated
+
+	void calc_size() {
+		for( const Sector & sector : used_sectors ) {
+			size += sector.size;
+		}
+	}
+
+	bool check() const;
+
+	bool operator!() const {
+		return !check();
+	}
 };
 
 class Error
@@ -35,6 +50,7 @@ class Error
 public:
 	enum ErrorCode
 	{
+		ConfigurationError,
 		InvalidSectorAddress,
 		ErrorUnlockingFlash,
 		ErrorErasingFlash,
@@ -60,11 +76,15 @@ class STM32InternalFlashHal
 public:
 	STM32InternalFlashHal( Configuration & conf );
 
+	bool operator!() const {
+		return error.has_value();
+	}
+
 	/**
 	 * erases on or more pages
 	 * size has to be page size
 	 */
-	bool erase_page( std::size_t address, std::size_t size );
+	bool erase_page_by_page_startaddress( std::size_t page_start_address, std::size_t size );
 
 	const std::optional<Error> & get_error() const {
 		return error;
@@ -75,6 +95,7 @@ public:
 	}
 
 	std::size_t write_page( std::size_t address, const std::span<std::byte> & buffer );
+	std::size_t read_page( std::size_t address, std::span<std::byte> & buffer );
 
 private:
 	std::optional<Configuration::Sector> get_sector_from_address( std::size_t address ) const;
