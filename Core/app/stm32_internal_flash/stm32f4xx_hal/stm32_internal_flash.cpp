@@ -93,9 +93,11 @@ std::size_t STM32InternalFlashHal::write_page( std::size_t address, const std::s
 	std::size_t size_written = 0;
 
 	for( uint32_t offset = 0; offset <= buffer.size() - data_step_size; offset += data_step_size ) {
+
 		std::size_t target_address = address + offset;
 		data_t *source = reinterpret_cast<data_t*>(buffer.data() + offset);
 		uint64_t aligned_source_data = *source;
+
 		HAL_StatusTypeDef ret = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
 				target_address,
 				aligned_source_data );
