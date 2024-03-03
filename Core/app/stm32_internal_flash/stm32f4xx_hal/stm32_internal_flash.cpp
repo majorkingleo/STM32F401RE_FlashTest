@@ -23,7 +23,7 @@ bool STM32InternalFlashHal::erase_page( std::size_t address, std::size_t size )
 	auto sector = get_sector_from_address( address );
 
 	if( !sector ) {
-		error_code = ErrorCode::InvalidSectorAddress;
+		error = Error::InvalidSectorAddress;
 		return false;
 	}
 
@@ -38,7 +38,7 @@ bool STM32InternalFlashHal::erase_page( std::size_t address, std::size_t size )
 
 
 	if( HAL_FLASH_Unlock() != HAL_OK) {
-		error_code = ErrorCode::ErrorUnlockingFlash;
+		error = Error(Error::ErrorUnlockingFlash);
 		return false;
 	}
 
@@ -47,7 +47,7 @@ bool STM32InternalFlashHal::erase_page( std::size_t address, std::size_t size )
 	clear_flags();
 
 	if (HAL_FLASHEx_Erase(&EraseInitStruct, &PAGEError) != HAL_OK) {
-		error_code = ErrorCode::ErrorErasingFlash;
+		error = Error(Error::ErrorErasingFlash);
 		return false;
 	}
 
@@ -75,6 +75,40 @@ std::optional<Configuration::Sector> STM32InternalFlashHal::get_sector_from_addr
 	}
 
 	return {};
+}
+
+std::size_t STM32InternalFlashHal::write_page( std::size_t address, const std::span<std::byte> & buffer )
+{
+	if( HAL_FLASH_Unlock() != HAL_OK) {
+		error = Error(Error::ErrorUnlockingFlash);
+		return 0;
+	}
+
+	AutoLockFlash auto_lock_flash;
+
+	clear_flags();
+
+	using data_t = uint32_t;
+	constexpr uint32_t data_step_size = sizeof(data_t);
+	std::size_t size_written = 0;
+
+	for( uint32_t offset = 0; offset <= buffer.size() - data_step_size; offset += data_step_size ) {
+		std::size_t target_address = address + offset;
+		data_t *source = reinterpret_cast<data_t*>(buffer.data() + offset);
+		uint64_t aligned_source_data = *source;
+		HAL_StatusTypeDef ret = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
+				target_address,
+				aligned_source_data );
+
+		if( ret != HAL_OK ) {
+			error = Error(Error::HAL_Error,HAL_FLASH_GetError());
+			return size_written;
+		}
+
+		size_written += data_step_size;
+	}
+
+	return size_written;
 }
 
 } // namespace smt32_internal_flash
