@@ -13,7 +13,7 @@
 #include <string.h>
 #include <memory>
 
-#include <stm32_internal_flash/stm32f4xx_hal/stm32_internal_flash.h>
+#include <stm32_internal_flash/stm32f4xx_hal/stm32_internal_flash_raw.h>
 
 using namespace Tools;
 
