@@ -138,7 +138,7 @@ void test_internal_flash_driver_raw()
 	static std::array<std::byte,16*1024> buffer{};
 	snprintf( (char*)buffer.data(), buffer.size(), "%s", "Hello World2" );
 
-	STM32InternalFlashHal raw_driver( conf );
+	STM32InternalFlashHalRaw raw_driver( conf );
 
 	if( !raw_driver ) {
 		CPPDEBUG( "initializing raw driver failed" );

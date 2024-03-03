@@ -68,13 +68,13 @@ public:
 };
 
 
-class STM32InternalFlashHal
+class STM32InternalFlashHalRaw
 {
 	Configuration & conf;
 	std::optional<Error> error;
 
 public:
-	STM32InternalFlashHal( Configuration & conf );
+	STM32InternalFlashHalRaw( Configuration & conf );
 
 	bool operator!() const {
 		return error.has_value();

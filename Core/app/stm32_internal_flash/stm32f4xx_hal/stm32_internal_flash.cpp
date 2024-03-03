@@ -51,7 +51,7 @@ bool Configuration::check() const
 	return true;
 }
 
-STM32InternalFlashHal::STM32InternalFlashHal( Configuration & conf_ )
+STM32InternalFlashHalRaw::STM32InternalFlashHalRaw( Configuration & conf_ )
 : conf( conf_ )
 {
 	conf.calc_size();
@@ -61,7 +61,7 @@ STM32InternalFlashHal::STM32InternalFlashHal( Configuration & conf_ )
 	}
 }
 
-bool STM32InternalFlashHal::erase_page_by_page_startaddress( std::size_t address, std::size_t size )
+bool STM32InternalFlashHalRaw::erase_page_by_page_startaddress( std::size_t address, std::size_t size )
 {
 	auto sector = get_sector_from_address( address );
 
@@ -97,7 +97,7 @@ bool STM32InternalFlashHal::erase_page_by_page_startaddress( std::size_t address
 	return true;
 }
 
-void STM32InternalFlashHal::clear_flags()
+void STM32InternalFlashHalRaw::clear_flags()
 {
 	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP |
 			               FLASH_FLAG_OPERR |
@@ -109,7 +109,7 @@ void STM32InternalFlashHal::clear_flags()
 						   FLASH_SR_BSY );
 }
 
-std::optional<Configuration::Sector> STM32InternalFlashHal::get_sector_from_address( std::size_t address ) const
+std::optional<Configuration::Sector> STM32InternalFlashHalRaw::get_sector_from_address( std::size_t address ) const
 {
 	for( const Configuration::Sector & sec : conf.used_sectors ) {
 		if( address == sec.start_address ) {
@@ -120,7 +120,7 @@ std::optional<Configuration::Sector> STM32InternalFlashHal::get_sector_from_addr
 	return {};
 }
 
-std::size_t STM32InternalFlashHal::write_page( std::size_t address, const std::span<std::byte> & buffer )
+std::size_t STM32InternalFlashHalRaw::write_page( std::size_t address, const std::span<std::byte> & buffer )
 {
 	if( HAL_FLASH_Unlock() != HAL_OK) {
 		error = Error(Error::ErrorUnlockingFlash);
@@ -157,7 +157,7 @@ std::size_t STM32InternalFlashHal::write_page( std::size_t address, const std::s
 	return size_written;
 }
 
-std::size_t STM32InternalFlashHal::read_page( std::size_t address, std::span<std::byte> & buffer )
+std::size_t STM32InternalFlashHalRaw::read_page( std::size_t address, std::span<std::byte> & buffer )
 {
 	std::size_t data_size = std::min( buffer.size(), conf.size );
 	memcpy( buffer.data(), conf.data_ptr, data_size );
