@@ -134,6 +134,16 @@ std::size_t STM32InternalFlashHalRaw::read_page( std::size_t address, std::span<
 	return data_size;
 }
 
+std::size_t STM32InternalFlashHalRaw::get_page_size()
+{
+	return conf.used_sectors.begin()->size;
+}
+
+bool STM32InternalFlashHalRaw::erase_page( std::size_t address, std::size_t size )
+{
+	return erase_page_by_page_startaddress(address, size );
+}
+
 } // namespace smt32_internal_flash
 
 

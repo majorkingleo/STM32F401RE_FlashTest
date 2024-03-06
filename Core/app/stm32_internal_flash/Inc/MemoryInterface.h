@@ -8,6 +8,8 @@
 #ifndef APP_STM32_INTERNAL_FLASH_INC_MEMORYINTERFACE_H_
 #define APP_STM32_INTERNAL_FLASH_INC_MEMORYINTERFACE_H_
 
+#include <cstddef>
+
 namespace smt32_internal_flash {
 
 class MemoryInterface

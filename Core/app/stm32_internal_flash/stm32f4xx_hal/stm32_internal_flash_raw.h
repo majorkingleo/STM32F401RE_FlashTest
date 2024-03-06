@@ -9,10 +9,11 @@
 #define APP_STM32_INTERNAL_FLASH_STM32F4XX_HAL_STM32_INTERNAL_FLASH_RAW_H_
 
 #include "stm32_internal_flash.h"
+#include "RawDriverInterface.h"
 
 namespace smt32_internal_flash {
 
-class STM32InternalFlashHalRaw
+class STM32InternalFlashHalRaw : public RawDriverInterface
 {
 	Configuration & conf;
 	std::optional<Error> error;
@@ -38,8 +39,12 @@ public:
 		error = {};
 	}
 
-	std::size_t write_page( std::size_t address, const std::span<std::byte> & buffer );
-	std::size_t read_page( std::size_t address, std::span<std::byte> & buffer );
+	std::size_t write_page( std::size_t address, const std::span<std::byte> & buffer ) override;
+	std::size_t read_page( std::size_t address, std::span<std::byte> & buffer )  override;
+
+	std::size_t get_page_size() override;
+
+	bool erase_page( std::size_t address, std::size_t size ) override;
 
 private:
 	std::optional<Configuration::Sector> get_sector_from_address( std::size_t address ) const;
