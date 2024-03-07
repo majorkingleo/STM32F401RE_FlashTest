@@ -22,6 +22,13 @@ public:
 	GenericFlashDriver( RawDriverInterface & raw_driver_ )
 	: raw_driver( raw_driver_ )
 	{}
+
+	std::size_t get_size() const override;
+
+	std::size_t write( std::size_t address, const std::span<std::byte> & data ) override;
+	std::size_t read( std::size_t address, std::span<std::byte> & data ) override;
+
+	void erase( std::size_t address, std::size_t size ) override;
 };
 
 }

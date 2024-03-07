@@ -25,6 +25,10 @@ public:
 		return error.has_value();
 	}
 
+	std::size_t get_size() override {
+		return conf.size;
+	}
+
 	/**
 	 * erases on or more pages
 	 * size has to be page size

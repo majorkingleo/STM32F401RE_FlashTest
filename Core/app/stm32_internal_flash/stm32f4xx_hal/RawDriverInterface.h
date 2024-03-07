@@ -18,6 +18,8 @@ class RawDriverInterface
 public:
 	virtual ~RawDriverInterface() {}
 
+	virtual std::size_t get_size() = 0;
+
 	virtual std::size_t get_page_size() = 0;
 
 	virtual bool erase_page( std::size_t address, std::size_t size ) = 0;
