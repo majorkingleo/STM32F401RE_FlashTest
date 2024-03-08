@@ -141,7 +141,9 @@ std::size_t STM32InternalFlashHalRaw::get_page_size()
 
 bool STM32InternalFlashHalRaw::erase_page( std::size_t address, std::size_t size )
 {
-	return erase_page_by_page_startaddress(address, size );
+	const uint32_t start_offset = reinterpret_cast<uint32_t>(conf.data_ptr);
+	std::size_t target_address = start_offset + address;
+	return erase_page_by_page_startaddress(target_address, size );
 }
 
 } // namespace smt32_internal_flash

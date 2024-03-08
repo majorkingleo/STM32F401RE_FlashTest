@@ -14,6 +14,7 @@
 #include <memory>
 
 #include <stm32_internal_flash/stm32f4xx_hal/stm32_internal_flash_raw.h>
+#include <stm32_internal_flash/stm32f4xx_hal/GenericFlashDriver.h>
 
 using namespace Tools;
 
@@ -166,6 +167,57 @@ void test_internal_flash_driver_raw()
 	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
 }
 
+void test_internal_flash_driver_generic()
+{
+	using namespace smt32_internal_flash;
+
+	Configuration::Sector sectors[] = {
+	  {
+		FLASH_SECTOR_1,
+		16*1024,
+		0x08004000
+	  },
+	  {
+		FLASH_SECTOR_2,
+		16*1024,
+		0x08008000
+	  },
+	  {
+		FLASH_SECTOR_3,
+		16*1024,
+		0x0800C000
+	  },
+	};
+
+	Configuration conf;
+	conf.data_ptr = reinterpret_cast<std::byte*>(&_flashfs_data_start);
+	conf.used_sectors = sectors;
+
+	STM32InternalFlashHalRaw raw_driver( conf );
+	GenericFlashDriver driver( raw_driver );
+
+	char buffer[] { "Hello World3. This is Cool! Stuff." };
+	std::span<std::byte> span_buffer( (std::byte*)buffer, std::size(buffer) );
+
+	CPPDEBUG( "writing" );
+	std::size_t len = driver.write(0, span_buffer);
+	if( len != span_buffer.size() ) {
+		CPPDEBUG( format( "writing data failed. Len: %d", len )  );
+		return;
+	}
+
+	CPPDEBUG( "reading" );
+	static std::array<std::byte,100> read_buffer{};
+	std::span<std::byte> sread_buffer( read_buffer );
+	len = driver.read( 0, sread_buffer );
+	if( len != sread_buffer.size() ) {
+		CPPDEBUG( "reading failed" );
+		return;
+	}
+
+	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+}
+
 void main_app()
 {
 	SimpleOutDebug out_debug;
@@ -196,7 +248,8 @@ void main_app()
 	CPPDEBUG( acBuffer );
 #endif
 
-	test_internal_flash_driver_raw();
+//	test_internal_flash_driver_raw();
+	test_internal_flash_driver_generic();
 
 
 	while( true ) {}
