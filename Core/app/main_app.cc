@@ -216,6 +216,29 @@ void test_internal_flash_driver_generic()
 	}
 
 	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+
+	std::size_t address = driver.get_page_size() - 10;
+
+
+	char buffer2[] { "Hello World4. This is Cool! Stuff." };
+	std::span<std::byte> span_buffer2( (std::byte*)buffer2, std::size(buffer2) );
+
+	CPPDEBUG( "writing" );
+	len = driver.write(address, span_buffer2);
+	if( len != span_buffer2.size() ) {
+		CPPDEBUG( format( "writing data failed. Len: %d", len )  );
+		return;
+	}
+
+
+	CPPDEBUG( "reading" );
+	len = driver.read( address, sread_buffer );
+	if( len != sread_buffer.size() ) {
+		CPPDEBUG( "reading failed" );
+		return;
+	}
+
+	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
 }
 
 void main_app()

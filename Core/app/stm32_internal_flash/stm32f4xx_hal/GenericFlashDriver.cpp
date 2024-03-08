@@ -35,7 +35,7 @@ std::size_t GenericFlashDriver::write( std::size_t address, const std::span<std:
 			return len;
 		}
 
-		len_written += len;
+		len_written += data_left_on_first_page;
 
 		data_int = data_int.subspan( len_written );
 	}
@@ -108,7 +108,7 @@ std::size_t GenericFlashDriver::write_unaligned_first_page( std::size_t address,
 
 	// amount of new data written to flash
 	// must be data.size()
-	if( len != data.size() ) {
+	if( len != page_size - data.size() ) {
 		return 0;
 	}
 
