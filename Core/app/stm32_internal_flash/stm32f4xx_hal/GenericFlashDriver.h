@@ -24,11 +24,21 @@ public:
 	{}
 
 	std::size_t get_size() const override;
+	std::size_t get_page_size() const override;
 
 	std::size_t write( std::size_t address, const std::span<std::byte> & data ) override;
 	std::size_t read( std::size_t address, std::span<std::byte> & data ) override;
 
-	void erase( std::size_t address, std::size_t size ) override;
+	bool erase( std::size_t address, std::size_t size ) override;
+
+protected:
+	/**
+	 * writes an unaligned amount of data, by reading the required page data before
+	 * data.size() has to be <= PAGE_SIZE
+	 */
+	std::size_t write_unaligned_first_page( std::size_t address, const std::span<std::byte> & data );
+
+	std::size_t write_unaligned_last_page( std::size_t address, const std::span<std::byte> & data );
 };
 
 }

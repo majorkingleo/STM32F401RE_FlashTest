@@ -43,11 +43,22 @@ public:
 		error = {};
 	}
 
+	/*
+	 * Writes a page to flash, the memory has to be erased before.
+	 * The function is not doing this automatically.
+	 */
 	std::size_t write_page( std::size_t address, const std::span<std::byte> & buffer ) override;
+
+	/**
+	 * reads from flash, it's just a memcpy, since reading goes via internal addresses
+	 */
 	std::size_t read_page( std::size_t address, std::span<std::byte> & buffer )  override;
 
 	std::size_t get_page_size() override;
 
+	/**
+	 * Erases at least one page. size has to be a multiple of PAGE_SIZE
+	 */
 	bool erase_page( std::size_t address, std::size_t size ) override;
 
 private:
