@@ -35,6 +35,7 @@ protected:
 	/**
 	 * writes an unaligned amount of data, by reading the required page data before
 	 * data.size() has to be <= PAGE_SIZE
+	 * returns the amount of new data written, which should be data.size()
 	 */
 	std::size_t write_unaligned_first_page( std::size_t address, const std::span<std::byte> & data );
 

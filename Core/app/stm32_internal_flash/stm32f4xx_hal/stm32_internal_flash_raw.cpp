@@ -129,7 +129,10 @@ std::size_t STM32InternalFlashHalRaw::write_page( std::size_t address, const std
 std::size_t STM32InternalFlashHalRaw::read_page( std::size_t address, std::span<std::byte> & buffer )
 {
 	std::size_t data_size = std::min( buffer.size(), conf.size );
-	memcpy( buffer.data(), conf.data_ptr, data_size );
+
+	std::byte* source_address = conf.data_ptr + address;
+
+	memcpy( buffer.data(), source_address, data_size );
 
 	return data_size;
 }

@@ -196,19 +196,22 @@ void test_internal_flash_driver_generic()
 	STM32InternalFlashHalRaw raw_driver( conf );
 	GenericFlashDriver driver( raw_driver );
 
+	static std::array<std::byte,100> read_buffer{};
+	std::span<std::byte> sread_buffer( read_buffer );
+	std::size_t len = 0;
+
+#if 0
 	char buffer[] { "Hello World3. This is Cool! Stuff." };
 	std::span<std::byte> span_buffer( (std::byte*)buffer, std::size(buffer) );
 
 	CPPDEBUG( "writing" );
-	std::size_t len = driver.write(0, span_buffer);
+	len = driver.write(0, span_buffer);
 	if( len != span_buffer.size() ) {
 		CPPDEBUG( format( "writing data failed. Len: %d", len )  );
 		return;
 	}
 
 	CPPDEBUG( "reading" );
-	static std::array<std::byte,100> read_buffer{};
-	std::span<std::byte> sread_buffer( read_buffer );
 	len = driver.read( 0, sread_buffer );
 	if( len != sread_buffer.size() ) {
 		CPPDEBUG( "reading failed" );
@@ -216,11 +219,12 @@ void test_internal_flash_driver_generic()
 	}
 
 	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+#endif
+#if 0
+	std::size_t address = driver.get_page_size() * 2 - 10;
 
-	std::size_t address = driver.get_page_size() - 10;
 
-
-	char buffer2[] { "Hello World4. This is Cool! Stuff." };
+	char buffer2[] { "Hello World4. This is Cool! Stuff. YYY3" };
 	std::span<std::byte> span_buffer2( (std::byte*)buffer2, std::size(buffer2) );
 
 	CPPDEBUG( "writing" );
@@ -232,8 +236,48 @@ void test_internal_flash_driver_generic()
 
 
 	CPPDEBUG( "reading" );
+	strcpy( (char*)sread_buffer.data(), "XXXXXXXXXXXXXXXXXXXX" );
 	len = driver.read( address, sread_buffer );
 	if( len != sread_buffer.size() ) {
+		CPPDEBUG( "reading failed" );
+		return;
+	}
+
+
+	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+#endif
+
+	std::size_t address = driver.get_page_size() - 10;
+	std::vector<std::byte> big_buffer(16*1024+100);
+
+	strcpy( (char*)&big_buffer[0], "Test4XXXXXXXXXXXXXXXXXXXXYYYYYYYYYYYYYYYYY" );
+	std::string test_text = "Test5ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ1";
+	const unsigned text_buffer_offset = big_buffer.size()-test_text.size()-1;
+	strcpy( (char*)&big_buffer[text_buffer_offset], test_text.c_str()  );
+	std::span<std::byte> span_buffer3( &big_buffer[0], big_buffer.size() );
+
+	CPPDEBUG( "writing" );
+	len = driver.write(address, span_buffer3);
+	if( len != span_buffer3.size() ) {
+		CPPDEBUG( format( "writing data failed. Len: %d", len )  );
+		return;
+	}
+
+
+	CPPDEBUG( "reading" );
+	strcpy( (char*)sread_buffer.data(), "XXXXXXXXXXXXXXXXXXXX" );
+
+	len = driver.read( address, sread_buffer );
+	if( len != sread_buffer.size() ) {
+		CPPDEBUG( "reading failed" );
+		return;
+	}
+
+	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+	std::span<std::byte> sread_buffer2 = sread_buffer.subspan(0, test_text.size());
+
+	len = driver.read( address + text_buffer_offset, sread_buffer2 );
+	if( len != sread_buffer2.size() ) {
 		CPPDEBUG( "reading failed" );
 		return;
 	}

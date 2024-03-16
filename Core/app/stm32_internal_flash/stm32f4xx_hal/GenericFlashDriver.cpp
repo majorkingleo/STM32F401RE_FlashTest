@@ -31,11 +31,11 @@ std::size_t GenericFlashDriver::write( std::size_t address, const std::span<std:
 		const std::size_t data_left_on_first_page = page_size - first_slice_len;
 		std::size_t len = write_unaligned_first_page( address, data_int.subspan( 0, data_left_on_first_page ) );
 
-		if( len != first_slice_len ) {
+		if( len != data_left_on_first_page ) {
 			return len;
 		}
 
-		len_written += data_left_on_first_page;
+		len_written += len;
 
 		data_int = data_int.subspan( len_written );
 	}
@@ -71,10 +71,8 @@ std::size_t GenericFlashDriver::write( std::size_t address, const std::span<std:
 std::size_t GenericFlashDriver::write_unaligned_first_page( std::size_t address, const std::span<std::byte> & data )
 {
 	const std::size_t page_size = get_page_size();
-	const std::size_t first_slice_len = address % page_size;
-
-	const std::size_t page_start_address = address - first_slice_len;
-	const std::size_t size_to_read_from_page = page_size - first_slice_len;
+	const std::size_t size_to_read_from_page = address % page_size;
+	const std::size_t page_start_address = address - size_to_read_from_page;
 
 	// allocate space on stack
 	std::byte *buffer = reinterpret_cast<std::byte*>( alloca( page_size ) );
@@ -90,7 +88,7 @@ std::size_t GenericFlashDriver::write_unaligned_first_page( std::size_t address,
 
 	// copy rest of first page into buffer
 	auto rest_of_data = span_buffer.subspan( size_to_read_from_page );
-	memcpy( rest_of_data.data(), data.data(), first_slice_len );
+	memcpy( rest_of_data.data(), data.data(), data.size() );
 
 	// now we can erase the page and write it
 	if( !raw_driver.erase_page(page_start_address, page_size) ) {
@@ -108,7 +106,7 @@ std::size_t GenericFlashDriver::write_unaligned_first_page( std::size_t address,
 
 	// amount of new data written to flash
 	// must be data.size()
-	if( len != page_size - data.size() ) {
+	if( len != data.size() ) {
 		return 0;
 	}
 

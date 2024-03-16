@@ -50,7 +50,9 @@ public:
 	std::size_t write_page( std::size_t address, const std::span<std::byte> & buffer ) override;
 
 	/**
-	 * reads from flash, it's just a memcpy, since reading goes via internal addresses
+	 * reads from flash, it's just a memcpy, since reading goes via internal addresses, so
+	 * start address has not to be page aligned and
+	 * buffer size can be smaller or larger than a page.
 	 */
 	std::size_t read_page( std::size_t address, std::span<std::byte> & buffer )  override;
 
