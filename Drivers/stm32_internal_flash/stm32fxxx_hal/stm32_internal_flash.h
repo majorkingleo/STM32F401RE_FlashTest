@@ -31,16 +31,22 @@ struct Configuration
 	};
 
 	std::span<const Sector> used_sectors{};
-	std::byte* data_ptr = nullptr;
+	std::byte* data_ptr = nullptr; // if null start_addess of forst sector is used.
 
 	uint32_t voltage_range = VOLTAGE_RANGE_3;
 	uint32_t banks = FLASH_BANK_1;
 
 	std::size_t size = 0; // full size, calculated
 
-	void calc_size() {
+	void init() {
+
+		// calc size
 		for( const Sector & sector : used_sectors ) {
 			size += sector.size;
+		}
+
+		if( !data_ptr ) {
+			data_ptr = reinterpret_cast<std::byte*>(used_sectors[0].start_address);
 		}
 	}
 

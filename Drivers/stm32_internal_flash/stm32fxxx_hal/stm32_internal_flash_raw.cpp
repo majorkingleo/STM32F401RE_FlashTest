@@ -25,7 +25,7 @@ namespace {
 STM32InternalFlashHalRaw::STM32InternalFlashHalRaw( Configuration & conf_ )
 : conf( conf_ )
 {
-	conf.calc_size();
+	conf.init();
 
 	if( !conf ) {
 		error = Error( Error::ConfigurationError );
