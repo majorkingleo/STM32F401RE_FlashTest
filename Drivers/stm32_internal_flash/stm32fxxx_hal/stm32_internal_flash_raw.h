@@ -4,6 +4,11 @@
  *
  * This driver is using the HAL library.
  *
+ * FOR STM32F4xxx processors:
+ * No HAL_Init() is required, no SystemClock_Config() or SystemInit()
+ * The driver and all function are working out of the box.
+ * SystemClock_Config() would be required if calls should be able to run into a timeout
+ *
  * @author Copyright (c) 2024 Martin Oberzalek
  */
 
@@ -48,6 +53,7 @@ public:
 	/*
 	 * Writes a page to flash, the memory has to be erased before.
 	 * The function is not doing this automatically.
+	 * After a write operation HAL driver is flushing the caches, of course there can be program code located
 	 */
 	std::size_t write_page( std::size_t address, const std::span<std::byte> & buffer ) override;
 
