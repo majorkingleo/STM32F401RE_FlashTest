@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 void main_app();
+void test_write_message_no_hal_init_no_clock_init_1();
 
 #ifdef __cplusplus
 }

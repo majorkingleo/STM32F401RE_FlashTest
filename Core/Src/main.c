@@ -70,7 +70,7 @@ static void MX_USART2_UART_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  test_write_message_no_hal_init_no_clock_init_1();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/

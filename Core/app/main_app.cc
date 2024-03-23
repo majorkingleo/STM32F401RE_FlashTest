@@ -285,6 +285,113 @@ void test_internal_flash_driver_generic()
 	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
 }
 
+
+void test_write_message_no_hal_init_no_clock_init_1()
+{
+	using namespace stm32_internal_flash;
+
+	Configuration::Sector sectors[] = {
+	  {
+		FLASH_SECTOR_1,
+		16*1024,
+		0x08004000
+	  },
+	  {
+		FLASH_SECTOR_2,
+		16*1024,
+		0x08008000
+	  },
+	  {
+		FLASH_SECTOR_3,
+		16*1024,
+		0x0800C000
+	  },
+	};
+
+	Configuration conf;
+	conf.data_ptr = reinterpret_cast<std::byte*>(&_flashfs_data_start);
+	conf.used_sectors = sectors;
+
+	STM32InternalFlashHalRaw raw_driver( conf );
+	GenericFlashDriver driver( raw_driver );
+
+	static std::array<std::byte,100> read_buffer{};
+	std::span<std::byte> sread_buffer( read_buffer );
+	std::size_t len = 0;
+
+
+	std::size_t address = driver.get_page_size() - 10;
+	std::vector<std::byte> big_buffer(16*1024+100);
+
+	strcpy( (char*)&big_buffer[0], "Test4XXXXXXXXXXXXXXXXXXXXYYYYYYYYYYYYYYYYY" );
+	std::string test_text = "Test6_NOHALTEST_NO_HAL_TEST_NO_HAL_TEST_NO_HAL";
+	const unsigned text_buffer_offset = big_buffer.size()-test_text.size()-1;
+	strcpy( (char*)&big_buffer[text_buffer_offset], test_text.c_str()  );
+	std::span<std::byte> span_buffer3( &big_buffer[0], big_buffer.size() );
+
+	len = driver.write(address, span_buffer3);
+	if( len != span_buffer3.size() ) {
+		return;
+	}
+}
+
+void test_write_message_no_hal_init_no_clock_init_2()
+{
+	using namespace stm32_internal_flash;
+
+	Configuration::Sector sectors[] = {
+	  {
+		FLASH_SECTOR_1,
+		16*1024,
+		0x08004000
+	  },
+	  {
+		FLASH_SECTOR_2,
+		16*1024,
+		0x08008000
+	  },
+	  {
+		FLASH_SECTOR_3,
+		16*1024,
+		0x0800C000
+	  },
+	};
+
+	Configuration conf;
+	conf.data_ptr = reinterpret_cast<std::byte*>(&_flashfs_data_start);
+	conf.used_sectors = sectors;
+
+	STM32InternalFlashHalRaw raw_driver( conf );
+	GenericFlashDriver driver( raw_driver );
+
+	static std::array<std::byte,100> read_buffer{};
+	std::span<std::byte> sread_buffer( read_buffer );
+	std::size_t len = 0;
+	std::size_t address = driver.get_page_size() - 10;
+
+	CPPDEBUG( "reading" );
+	strcpy( (char*)sread_buffer.data(), "XXXXXXXXXXXXXXXXXXXX" );
+
+	len = driver.read( address, sread_buffer );
+	if( len != sread_buffer.size() ) {
+		CPPDEBUG( "reading failed" );
+		return;
+	}
+
+	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+	std::span<std::byte> sread_buffer2 = sread_buffer.subspan(0, 46);
+
+	std::vector<std::byte> big_buffer(16*1024+100);
+	const unsigned text_buffer_offset = big_buffer.size()-46-1;
+	len = driver.read( address + text_buffer_offset, sread_buffer2 );
+	if( len != sread_buffer2.size() ) {
+		CPPDEBUG( "reading failed" );
+		return;
+	}
+
+	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+}
+
 void main_app()
 {
 	SimpleOutDebug out_debug;
@@ -316,8 +423,8 @@ void main_app()
 #endif
 
 //	test_internal_flash_driver_raw();
-	test_internal_flash_driver_generic();
-
+//	test_internal_flash_driver_generic();
+	test_write_message_no_hal_init_no_clock_init_2();
 
 	while( true ) {}
 }
