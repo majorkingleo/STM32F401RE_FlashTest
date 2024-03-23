@@ -1,8 +1,5 @@
 /*
- * JBODGenericFlashDriver.cpp
- *
- *  Created on: Mar 21, 2024
- *      Author: martin.oberzalek
+ * @author Copyright (c) 2024 Martin Oberzalek
  */
 #include "JBODGenericFlashDriver.h"
 
@@ -95,8 +92,53 @@ JBODGenericFlashDriver::DriverInfo JBODGenericFlashDriver::get_driver_idx_by_add
 	return info;
 }
 
+template<class SPAN, class FUNC>
+std::size_t JBODGenericFlashDriver::read_write( std::size_t address, SPAN & data, FUNC func )
+{
+	DriverInfo info = get_driver_idx_by_address( address );
+
+	if( !info ) {
+		return false;
+	}
+
+	address -= info.address_offset;
+	std::span<std::byte> local_data = data;
+	std::size_t len = 0;
+
+	for( unsigned idx = info.driver_idx; idx < drivers.size(); idx++ ) {
+		MemoryInterface *driver = drivers[idx];
+
+		std::size_t local_size = std::min( driver->get_size() - address, local_data.size() );
+		std::span<std::byte> sub_data = local_data.subspan(0, local_size);
+
+		std::size_t len_written = func( driver, address, sub_data );
+		len += len_written;
+
+		if( len_written != sub_data.size() ) {
+			return len;
+		}
+
+		if( len >= data.size() ) {
+			break;
+		}
+
+		// after first run address is aligned and always 0 to the local driver
+		address = 0;
+		local_data = local_data.subspan(sub_data.size());
+	}
+
+	return len;
+}
+
 std::size_t JBODGenericFlashDriver::write( std::size_t address, const std::span<std::byte> & data )
 {
+	auto write_func=[]( MemoryInterface *driver, std::size_t address, const std::span<std::byte> & data ) {
+		return driver->write( address, data );
+	};
+
+
+	return read_write( address, data, write_func );
+#if 0
 	DriverInfo info = get_driver_idx_by_address( address );
 
 	if( !info ) {
@@ -128,6 +170,17 @@ std::size_t JBODGenericFlashDriver::write( std::size_t address, const std::span<
 	}
 
 	return len;
+#endif
+}
+
+std::size_t JBODGenericFlashDriver::read( std::size_t address, std::span<std::byte> & data )
+{
+	auto read_func=[]( MemoryInterface *driver, std::size_t address, std::span<std::byte> & data ) {
+		return driver->read( address, data );
+	};
+
+
+	return read_write( address, data, read_func );
 }
 
 } // namespace stm32_internal_flash

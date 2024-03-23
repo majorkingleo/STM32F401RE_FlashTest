@@ -3,6 +3,8 @@
  * GenericFlashDrivers
  *
  * This way you can manage flash storages with different page sizes
+ *
+ * @author Copyright (c) 2024 Martin Oberzalek
  */
 
 #ifndef DRIVERS_STM32_INTERNAL_FLASH_INC_JBODGENERICFLASHDRIVER_H_
@@ -29,7 +31,7 @@ protected:
 
 public:
 
-	JBODGenericFlashDriver( std::span<MemoryInterface*> drivers_ )
+	JBODGenericFlashDriver( const std::span<MemoryInterface*> & drivers_ )
 	: drivers( drivers_ )
 	{}
 
@@ -55,6 +57,10 @@ private:
 	 * returns -1 if out of range
 	 */
 	DriverInfo get_driver_idx_by_address( std::size_t address ) const;
+
+
+	template<class SPAN, class FUNC>
+	std::size_t read_write( std::size_t address, SPAN & data, FUNC func );
 };
 
 
