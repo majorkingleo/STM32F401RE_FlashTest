@@ -15,6 +15,7 @@
 
 #include <stm32_internal_flash_raw.h>
 #include <GenericFlashDriver.h>
+#include <JBODGenericFlashDriver.h>
 
 using namespace Tools;
 
@@ -392,6 +393,90 @@ void test_write_message_no_hal_init_no_clock_init_2()
 	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
 }
 
+void test_JBOD_driver()
+{
+	using namespace stm32_internal_flash;
+
+	Configuration::Sector sectors_16k[] = {
+	  {
+		FLASH_SECTOR_3,
+		16*1024,
+		0x0800C000
+	  },
+	};
+
+	Configuration conf_16k;
+	conf_16k.used_sectors = sectors_16k;
+
+	STM32InternalFlashHalRaw raw_driver_16k( conf_16k );
+	GenericFlashDriver driver_16k( raw_driver_16k );
+
+
+	Configuration::Sector sectors_64k[] = {
+	  {
+		FLASH_SECTOR_4,
+		64*1024,
+		0x08010000
+	  },
+	};
+
+	Configuration conf_64k;
+	conf_64k.used_sectors = sectors_64k;
+
+	STM32InternalFlashHalRaw raw_driver_64k( conf_64k );
+	GenericFlashDriver driver_64k( raw_driver_64k );
+
+	static std::array<std::byte,100> read_buffer{};
+	std::span<std::byte> sread_buffer( read_buffer );
+	std::size_t len = 0;
+
+
+	MemoryInterface* drivers_array[] = {
+		&driver_16k,
+		&driver_64k
+	};
+
+
+	JBODGenericFlashDriver driver( drivers_array );
+
+	std::size_t address = driver_16k.get_page_size() - 10;
+	std::vector<std::byte> big_buffer(16*1024+100);
+
+	strcpy( (char*)&big_buffer[0], "Test7XXXXXXXXXXXXXXXXXXXXYYYYYYYYYYYYYYYYY" );
+	std::string test_text = "Test7ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ1";
+	const unsigned text_buffer_offset = big_buffer.size()-test_text.size()-1;
+	strcpy( (char*)&big_buffer[text_buffer_offset], test_text.c_str()  );
+	std::span<std::byte> span_buffer3( &big_buffer[0], big_buffer.size() );
+
+	CPPDEBUG( "writing" );
+	len = driver.write(address, span_buffer3);
+	if( len != span_buffer3.size() ) {
+		CPPDEBUG( format( "writing data failed. Len: %d", len )  );
+		return;
+	}
+
+
+	CPPDEBUG( "reading" );
+	strcpy( (char*)sread_buffer.data(), "XXXXXXXXXXXXXXXXXXXX" );
+
+	len = driver.read( address, sread_buffer );
+	if( len != sread_buffer.size() ) {
+		CPPDEBUG( "reading failed" );
+		return;
+	}
+
+	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+	std::span<std::byte> sread_buffer2 = sread_buffer.subspan(0, test_text.size());
+
+	len = driver.read( address + text_buffer_offset, sread_buffer2 );
+	if( len != sread_buffer2.size() ) {
+		CPPDEBUG( "reading failed" );
+		return;
+	}
+
+	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+}
+
 void main_app()
 {
 	SimpleOutDebug out_debug;
@@ -424,7 +509,8 @@ void main_app()
 
 //	test_internal_flash_driver_raw();
 //	test_internal_flash_driver_generic();
-	test_write_message_no_hal_init_no_clock_init_2();
+// test_write_message_no_hal_init_no_clock_init_2();
+	test_JBOD_driver();
 
 	while( true ) {}
 }
