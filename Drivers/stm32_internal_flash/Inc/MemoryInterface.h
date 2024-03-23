@@ -1,8 +1,6 @@
 /*
  * Exposed MemoryInterface of this driver
- *
- *  Created on: Mar 3, 2024
- *      Author: Martin
+ * @author Copyright (c) 2024 Martin Oberzalek
  */
 
 #ifndef APP_STM32_INTERNAL_FLASH_INC_MEMORYINTERFACE_H_
@@ -11,7 +9,7 @@
 #include <cstddef>
 #include <span>
 
-namespace smt32_internal_flash {
+namespace stm32_internal_flash {
 
 class MemoryInterface
 {

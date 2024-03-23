@@ -1,14 +1,15 @@
 /*
- * GenericFlashDriver.cpp
+ * Generic driver class that can write unaligned to any
+ * flash page. Will read necessary data from the page before.
+ * Do call automatically erase, before writing.
  *
- *  Created on: Mar 6, 2024
- *      Author: Martin
+ * @author Copyright (c) 2024 Martin Oberzalek
  */
 #include "GenericFlashDriver.h"
 #include <alloca.h>
 #include <string.h>
 
-namespace smt32_internal_flash {
+namespace stm32_internal_flash {
 
 std::size_t GenericFlashDriver::get_size() const
 {

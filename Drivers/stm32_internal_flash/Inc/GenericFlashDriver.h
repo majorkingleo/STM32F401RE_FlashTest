@@ -1,17 +1,18 @@
 /*
- * GenericFlashDriver.h
+ * Generic driver class that can write unaligned to any
+ * flash page. Will read necessary data from the page before.
+ * Do call automatically erase, before writing.
  *
- *  Created on: Mar 6, 2024
- *      Author: Martin
+ * @author Copyright (c) 2024 Martin Oberzalek
  */
 
 #ifndef APP_STM32_INTERNAL_FLASH_STM32F4XX_HAL_GENERICFLASHDRIVER_H_
 #define APP_STM32_INTERNAL_FLASH_STM32F4XX_HAL_GENERICFLASHDRIVER_H_
 
 #include "RawDriverInterface.h"
-#include "../Inc/MemoryInterface.h"
+#include "MemoryInterface.h"
 
-namespace smt32_internal_flash {
+namespace stm32_internal_flash {
 
 class GenericFlashDriver : public MemoryInterface
 {
@@ -26,6 +27,9 @@ public:
 	std::size_t get_size() const override;
 	std::size_t get_page_size() const override;
 
+	/**
+	 * writes data, aligned or unaligned. Erase is called automatically before
+	 */
 	std::size_t write( std::size_t address, const std::span<std::byte> & data ) override;
 	std::size_t read( std::size_t address, std::span<std::byte> & data ) override;
 

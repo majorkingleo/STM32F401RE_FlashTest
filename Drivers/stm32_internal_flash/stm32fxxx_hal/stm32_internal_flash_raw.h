@@ -1,17 +1,19 @@
 /*
- * stm32_internal_flash_raw.h
+ * Raw driver. Expects that all operations
+ * are page aligned and only full pages can be written.
  *
- *  Created on: Mar 3, 2024
- *      Author: Martin
+ * This driver is using the HAL library.
+ *
+ * @author Copyright (c) 2024 Martin Oberzalek
  */
 
-#ifndef APP_STM32_INTERNAL_FLASH_STM32F4XX_HAL_STM32_INTERNAL_FLASH_RAW_H_
-#define APP_STM32_INTERNAL_FLASH_STM32F4XX_HAL_STM32_INTERNAL_FLASH_RAW_H_
+#ifndef APP_STM32_INTERNAL_FLASH_STM32FXXX_HAL_STM32_INTERNAL_FLASH_RAW_H_
+#define APP_STM32_INTERNAL_FLASH_STM32FXXX_HAL_STM32_INTERNAL_FLASH_RAW_H_
 
 #include "stm32_internal_flash.h"
 #include "RawDriverInterface.h"
 
-namespace smt32_internal_flash {
+namespace stm32_internal_flash {
 
 class STM32InternalFlashHalRaw : public RawDriverInterface
 {
@@ -70,4 +72,4 @@ private:
 
 } // namespace smt32_internal_flash
 
-#endif /* APP_STM32_INTERNAL_FLASH_STM32F4XX_HAL_STM32_INTERNAL_FLASH_RAW_H_ */
+#endif /* APP_STM32_INTERNAL_FLASH_STM32FXXX_HAL_STM32_INTERNAL_FLASH_RAW_H_ */

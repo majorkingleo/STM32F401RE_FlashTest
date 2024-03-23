@@ -1,8 +1,8 @@
 /*
- * RawDriverInterface.h
+ * Raw driver interface. Expects that all operations
+ * are page aligned and only full pages can be written.
  *
- *  Created on: Mar 6, 2024
- *      Author: Martin
+ * @author Copyright (c) 2024 Martin Oberzalek
  */
 
 #ifndef APP_STM32_INTERNAL_FLASH_STM32F4XX_HAL_RAWDRIVERINTERFACE_H_
@@ -11,7 +11,7 @@
 #include <cstddef>
 #include <span>
 
-namespace smt32_internal_flash {
+namespace stm32_internal_flash {
 
 class RawDriverInterface
 {

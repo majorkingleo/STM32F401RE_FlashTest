@@ -1,8 +1,6 @@
-/*
- * DriverInterface.h
- *
- *  Created on: Mar 3, 2024
- *      Author: Martin
+/**
+ * Exposed driver interface
+ * @author Copyright (c) 2024 Martin Oberzalek
  */
 
 #ifndef APP_STM32_INTERNAL_FLASH_INC_DRIVERINTERFACE_H_

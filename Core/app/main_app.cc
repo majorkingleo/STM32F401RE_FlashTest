@@ -13,8 +13,8 @@
 #include <string.h>
 #include <memory>
 
-#include <stm32_internal_flash/stm32f4xx_hal/stm32_internal_flash_raw.h>
-#include <stm32_internal_flash/stm32f4xx_hal/GenericFlashDriver.h>
+#include <stm32_internal_flash_raw.h>
+#include <GenericFlashDriver.h>
 
 using namespace Tools;
 
@@ -112,7 +112,7 @@ void Write_Flash( const std::span<std::byte,16*1024> & buffer )
 
 void test_internal_flash_driver_raw()
 {
-	using namespace smt32_internal_flash;
+	using namespace stm32_internal_flash;
 
 	Configuration::Sector sectors[] = {
 	  {
@@ -169,7 +169,7 @@ void test_internal_flash_driver_raw()
 
 void test_internal_flash_driver_generic()
 {
-	using namespace smt32_internal_flash;
+	using namespace stm32_internal_flash;
 
 	Configuration::Sector sectors[] = {
 	  {

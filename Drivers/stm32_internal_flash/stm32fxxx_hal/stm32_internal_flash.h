@@ -1,19 +1,25 @@
 /*
- * stm32_internal_flash.h
+ * Configuration structures for the raw flash driver.
  *
- *  Created on: Mar 3, 2024
- *      Author: Martin
+ * @author Copyright (c) 2024 Martin Oberzalek
  */
 
-#ifndef APP_STM32_INTERNAL_FLASH_STM32F4XX_HAL_STM32_INTERNAL_FLASH_H_
-#define APP_STM32_INTERNAL_FLASH_STM32F4XX_HAL_STM32_INTERNAL_FLASH_H_
+#ifndef APP_STM32_INTERNAL_FLASH_STM32FXXX_HAL_STM32_INTERNAL_FLASH_H_
+#define APP_STM32_INTERNAL_FLASH_STM32FXXX_HAL_STM32_INTERNAL_FLASH_H_
 
 #include <optional>
 #include <span>
 #include <stdint.h>
-#include <stm32f4xx_hal.h>
 
-namespace smt32_internal_flash {
+#if defined(STM32F407xx) || defined(STM32F401xE)
+#include <stm32f4xx_hal.h>
+#endif
+
+#if defined(STM32F207xx)
+#include <stm32f2xx_hal.h>
+#endif
+
+namespace stm32_internal_flash {
 
 struct Configuration
 {
@@ -24,7 +30,7 @@ struct Configuration
 		std::size_t start_address = 0;
 	};
 
-	std::span<Sector> used_sectors{};
+	std::span<const Sector> used_sectors{};
 	std::byte* data_ptr = nullptr;
 
 	uint32_t voltage_range = VOLTAGE_RANGE_3;

@@ -3,7 +3,7 @@
  */
 #include "stm32_internal_flash.h"
 
-namespace smt32_internal_flash {
+namespace stm32_internal_flash {
 
 bool Configuration::check() const
 {

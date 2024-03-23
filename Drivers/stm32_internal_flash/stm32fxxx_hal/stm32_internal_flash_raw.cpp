@@ -1,13 +1,15 @@
 /*
- * stm32_internal_flash_raw.cpp
+ * Raw driver. Expects that all operations
+ * are page aligned and only full pages can be written.
  *
- *  Created on: Mar 3, 2024
- *      Author: Martin
+ * This driver is using the HAL library.
+ *
+ * @author Copyright (c) 2024 Martin Oberzalek
  */
 #include "stm32_internal_flash_raw.h"
 #include <string.h>
 
-namespace smt32_internal_flash {
+namespace stm32_internal_flash {
 
 namespace {
 	class AutoLockFlash
@@ -74,7 +76,9 @@ void STM32InternalFlashHalRaw::clear_flags()
 						   FLASH_FLAG_PGAERR |
 						   FLASH_FLAG_PGSERR |
 						   FLASH_FLAG_PGPERR |
+#ifdef FLASH_SR_RDERR
 						   FLASH_SR_RDERR |
+#endif
 						   FLASH_SR_BSY );
 }
 
