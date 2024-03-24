@@ -48,6 +48,11 @@ bool STM32InternalFlashHalRaw::erase_page_by_page_startaddress( std::size_t addr
 	EraseInitStruct.Banks     = conf.banks;
 	EraseInitStruct.Sector	  = sector->sector;
 	EraseInitStruct.NbSectors = size / sector->size;
+
+	if( EraseInitStruct.NbSectors == 0 ) {
+		 EraseInitStruct.NbSectors = 1;
+	}
+
 	EraseInitStruct.VoltageRange = conf.voltage_range;
 
 
