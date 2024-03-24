@@ -53,7 +53,9 @@ public:
 	/*
 	 * Writes a page to flash, the memory has to be erased before.
 	 * The function is not doing this automatically.
-	 * After a write operation HAL driver is flushing the caches, of course there can be program code located
+	 * After a write operation HAL driver is flushing the caches, of course there can be program code located.
+	 *
+	 * Buffer: can be smaller then page size.
 	 */
 	std::size_t write_page( std::size_t address, const std::span<std::byte> & buffer ) override;
 
