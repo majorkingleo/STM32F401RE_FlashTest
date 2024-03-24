@@ -18,10 +18,16 @@ class GenericFlashDriver : public MemoryInterface
 {
 protected:
 	RawDriverInterface & raw_driver;
+	std::span<std::byte> * page_buffer; // buffer that has to be PAGE_SIZE size
 
 public:
-	GenericFlashDriver( RawDriverInterface & raw_driver_ )
-	: raw_driver( raw_driver_ )
+	/**
+	 * page_buffer: span that has to be PAGE_SIZE large. If null alloca is used
+	 *              to get the buffer on stack. Be careful, this can be a large value.
+	 */
+	GenericFlashDriver( RawDriverInterface & raw_driver_, std::span<std::byte> * page_buffer_ = nullptr )
+	: raw_driver( raw_driver_ ),
+	  page_buffer( page_buffer_ )
 	{}
 
 	std::size_t get_size() const override;

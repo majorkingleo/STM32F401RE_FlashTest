@@ -75,8 +75,20 @@ std::size_t GenericFlashDriver::write_unaligned_first_page( std::size_t address,
 	const std::size_t size_to_read_from_page = address % page_size;
 	const std::size_t page_start_address = address - size_to_read_from_page;
 
-	// allocate space on stack
-	std::byte *buffer = reinterpret_cast<std::byte*>( alloca( page_size ) );
+	std::byte *buffer = nullptr;
+
+	if( page_buffer ) {
+		buffer = page_buffer->data();
+
+		if( page_buffer->size() < page_size ) {
+			return 0;
+		}
+
+	} else {
+		// allocate space on stack
+		buffer = reinterpret_cast<std::byte*>( alloca( page_size ) );
+	}
+
 	std::span<std::byte> span_buffer( buffer, page_size );
 	auto span_to_read = span_buffer.subspan(0, size_to_read_from_page);
 
@@ -118,8 +130,20 @@ std::size_t GenericFlashDriver::write_unaligned_last_page( std::size_t address, 
 {
 	const std::size_t page_size = get_page_size();
 
-	// allocate space on stack
-	std::byte *buffer = reinterpret_cast<std::byte*>( alloca( page_size ) );
+	std::byte *buffer = nullptr;
+
+	if( page_buffer ) {
+		buffer = page_buffer->data();
+
+		if( page_buffer->size() < page_size ) {
+			return 0;
+		}
+
+	} else {
+		// allocate space on stack
+		buffer = reinterpret_cast<std::byte*>( alloca( page_size ) );
+	}
+
 	std::span<std::byte> span_buffer( buffer, page_size );
 	auto span_to_read = span_buffer.subspan(data.size());
 
