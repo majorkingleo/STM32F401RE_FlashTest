@@ -19,7 +19,7 @@
 
 using namespace Tools;
 
-volatile uint8_t flashFsData[48*1024] __attribute__ ((section(".flashfs_data")));
+volatile uint8_t flashFsData[112*1024] __attribute__ ((section(".flashfs_data")));
 
 std::array<std::byte,16*1024> buffer;
 extern uint32_t _flashfs_data_start;
@@ -116,6 +116,7 @@ void test_internal_flash_driver_raw()
 	using namespace stm32_internal_flash;
 
 	Configuration::Sector sectors[] = {
+			/*
 	  {
 		FLASH_SECTOR_1,
 		16*1024,
@@ -130,7 +131,13 @@ void test_internal_flash_driver_raw()
 		FLASH_SECTOR_3,
 		16*1024,
 		0x0800C000
-	  },
+	  },*/
+
+		{
+			FLASH_SECTOR_4,
+			64*1024,
+			0x08010000
+		},
 	};
 
 	Configuration conf;
@@ -146,7 +153,7 @@ void test_internal_flash_driver_raw()
 		CPPDEBUG( "initializing raw driver failed" );
 		return;
 	}
-
+/*
 	CPPDEBUG( "erasing" );
 	if( !raw_driver.erase_page_by_page_startaddress( sectors[0].start_address, sectors[0].size ) ) {
 		CPPDEBUG( "erasing page failed" );
@@ -159,7 +166,7 @@ void test_internal_flash_driver_raw()
 		CPPDEBUG( "writing page failed" );
 		return;
 	}
-
+*/
 	CPPDEBUG( "reading" );
 	static std::array<std::byte,100> read_buffer{};
 	std::span<std::byte> sread_buffer( read_buffer );
@@ -511,7 +518,7 @@ void main_app()
 //	test_internal_flash_driver_generic();
 // test_write_message_no_hal_init_no_clock_init_2();
 	test_JBOD_driver();
-
+	test_internal_flash_driver_raw();
 	while( true ) {}
 }
 

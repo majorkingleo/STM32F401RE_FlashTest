@@ -38,16 +38,16 @@ ENTRY(Reset_Handler)
 /* Highest address of the user mode stack */
 _estack = ORIGIN(RAM) + LENGTH(RAM); /* end of "RAM" Ram type memory */
 
-_Min_Heap_Size = 0x200; /* required amount of heap */
-_Min_Stack_Size = 0x400; /* required amount of stack */
+_Min_Heap_Size = 20k; /* required amount of heap */
+_Min_Stack_Size = 50k; /* required amount of stack */
 
 /* Memories definition */
 MEMORY
 {
-  RAM    (xrw)          : ORIGIN = 0x20000000,   LENGTH = 96K
-  FLASH_BOOT    (rx)    : ORIGIN = 0x8000000,   LENGTH = 16K
-  FLASH_FS     (rx)    : ORIGIN = 0x8004000,   LENGTH = 176K
-  FLASH    (rx)         : ORIGIN =  0x08020000,   LENGTH = 384K
+  RAM          (xrw)   : ORIGIN = 0x20000000,    LENGTH = 96K
+  FLASH_BOOT   (rx)    : ORIGIN = 0x8000000,     LENGTH = 16K
+  FLASH_FS     (rx)    : ORIGIN = 0x8004000,     LENGTH = 112K
+  FLASH        (rx)    : ORIGIN = 0x08020000,    LENGTH = 384K
 }
 
 /* Sections */
