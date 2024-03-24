@@ -50,6 +50,24 @@ public:
 
 	bool erase( std::size_t address, std::size_t size ) override;
 
+
+	/**
+	 * Since the flash drive can erase only whole pages,
+	 * It's not possible writing only half of a page, without destroying all.
+	 * To do this the driver will read the whole page before, manipulates the data
+	 * in RAM, erases the page and writes back all.
+	 *
+	 * This requires at least PAGE_SIZE bytes of RAM.
+	 *
+	 * If you don't have so much RAM, or just don't need it you can disable
+	 * this feature.
+	 */
+	void restore_data_on_unaligned_writes( bool state ) override;
+
+	bool can_restore_data_on_unaligned_writes() const override;
+
+	bool get_restore_data_on_unaligned_writes() const override;
+
 private:
 	MemoryInterface* get_driver_by_address( std::size_t address ) const;
 

@@ -446,11 +446,15 @@ void test_JBOD_driver()
 
 	JBODGenericFlashDriver driver( drivers_array );
 
+	// disable restoring unaligen data, since we have not
+	// enough RAM to do this
+	driver.restore_data_on_unaligned_writes(false);
+
 	std::size_t address = driver_16k.get_page_size() - 10;
-	std::vector<std::byte> big_buffer(16*1024+100);
+	std::vector<std::byte> big_buffer(1024+100);
 
 	strcpy( (char*)&big_buffer[0], "Test7XXXXXXXXXXXXXXXXXXXXYYYYYYYYYYYYYYYYY" );
-	std::string test_text = "Test7ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ1";
+	std::string test_text = "Test7_BUNCH_OF_DISKS_BUNCH_OF_DISCS_BUNCH_OF_DISCS_1";
 	const unsigned text_buffer_offset = big_buffer.size()-test_text.size()-1;
 	strcpy( (char*)&big_buffer[text_buffer_offset], test_text.c_str()  );
 	std::span<std::byte> span_buffer3( &big_buffer[0], big_buffer.size() );
@@ -514,11 +518,11 @@ void main_app()
 	CPPDEBUG( acBuffer );
 #endif
 
-//	test_internal_flash_driver_raw();
-//	test_internal_flash_driver_generic();
-// test_write_message_no_hal_init_no_clock_init_2();
+	test_write_message_no_hal_init_no_clock_init_2();
+	// test_internal_flash_driver_raw();
+	test_internal_flash_driver_generic();
 	test_JBOD_driver();
-	test_internal_flash_driver_raw();
+
 	while( true ) {}
 }
 

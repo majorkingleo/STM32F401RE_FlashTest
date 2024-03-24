@@ -138,39 +138,6 @@ std::size_t JBODGenericFlashDriver::write( std::size_t address, const std::span<
 
 
 	return read_write( address, data, write_func );
-#if 0
-	DriverInfo info = get_driver_idx_by_address( address );
-
-	if( !info ) {
-		return false;
-	}
-
-	address -= info.address_offset;
-	std::span<std::byte> local_data = data;
-	std::size_t len = 0;
-
-	for( unsigned idx = info.driver_idx; idx < drivers.size(); idx++ ) {
-		MemoryInterface *driver = drivers[idx];
-
-		std::size_t local_size = std::min( driver->get_size(), local_data.size() );
-		std::span<std::byte> sub_data = local_data.subspan(0, local_size);
-
-		std::size_t len_written = driver->write( address, sub_data );
-		len += len_written;
-
-		if( len_written != sub_data.size() ) {
-			return len;
-		}
-
-		if( len >= data.size() ) {
-			break;
-		}
-
-		local_data = local_data.subspan(local_data.size());
-	}
-
-	return len;
-#endif
 }
 
 std::size_t JBODGenericFlashDriver::read( std::size_t address, std::span<std::byte> & data )
@@ -181,6 +148,34 @@ std::size_t JBODGenericFlashDriver::read( std::size_t address, std::span<std::by
 
 
 	return read_write( address, data, read_func );
+}
+
+void JBODGenericFlashDriver::restore_data_on_unaligned_writes( bool state ) {
+	for( MemoryInterface* driver : drivers ) {
+		driver->restore_data_on_unaligned_writes(state);
+	}
+}
+
+bool JBODGenericFlashDriver::can_restore_data_on_unaligned_writes() const
+{
+	for( MemoryInterface* driver : drivers ) {
+		if( !driver->can_restore_data_on_unaligned_writes() ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool JBODGenericFlashDriver::get_restore_data_on_unaligned_writes() const
+{
+	for( MemoryInterface* driver : drivers ) {
+		if( !driver->get_restore_data_on_unaligned_writes() ) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 } // namespace stm32_internal_flash

@@ -30,7 +30,14 @@ std::size_t GenericFlashDriver::write( std::size_t address, const std::span<std:
 	// address is not page aligned
 	if( const std::size_t first_slice_len = address % page_size; first_slice_len != 0 ) {
 		const std::size_t data_left_on_first_page = page_size - first_slice_len;
-		std::size_t len = write_unaligned_first_page( address, data_int.subspan( 0, data_left_on_first_page ) );
+
+		std::size_t len = 0;
+
+		if( do_restore_data_on_unaligned_writes ) {
+			len = write_unaligned_first_page( address, data_int.subspan( 0, data_left_on_first_page ) );
+		} else {
+			len = write_unaligned_first_page_no_buffer( address, data_int.subspan( 0, data_left_on_first_page ) );
+		}
 
 		if( len != data_left_on_first_page ) {
 			return len;
@@ -62,7 +69,11 @@ std::size_t GenericFlashDriver::write( std::size_t address, const std::span<std:
 
 	// last slice of data is not page aligned
 	if( len_written < data.size() ) {
-		len_written += write_unaligned_last_page( address + len_written, data_int );
+		if( do_restore_data_on_unaligned_writes ) {
+			len_written += write_unaligned_last_page( address + len_written, data_int );
+		} else {
+			len_written += write_unaligned_last_page_no_buffer( address + len_written, data_int );
+		}
 	}
 
 
@@ -193,6 +204,46 @@ std::size_t GenericFlashDriver::read( std::size_t address, std::span<std::byte> 
 bool GenericFlashDriver::erase( std::size_t address, std::size_t size )
 {
 	return raw_driver.erase_page(address, size);
+}
+
+std::size_t GenericFlashDriver::write_unaligned_first_page_no_buffer( std::size_t address, const std::span<std::byte> & data )
+{
+	const std::size_t page_size = get_page_size();
+	const std::size_t size_to_read_from_page = address % page_size;
+	const std::size_t page_start_address = address - size_to_read_from_page;
+
+	// now we can erase the page and write it
+	if( !raw_driver.erase_page(page_start_address, page_size) ) {
+		return 0;
+	}
+
+	// now write it
+	std::size_t len = raw_driver.write_page(address, data);
+
+	if( len != data.size() ) {
+		return 0;
+	}
+
+	return len;
+}
+
+std::size_t GenericFlashDriver::write_unaligned_last_page_no_buffer( std::size_t address, const std::span<std::byte> & data )
+{
+	const std::size_t page_size = get_page_size();
+
+	// now we can erase the page and write it
+	if( !raw_driver.erase_page(address, page_size) ) {
+		return 0;
+	}
+
+	// now write it
+	std::size_t len = raw_driver.write_page(address, data);
+
+	if( len != data.size() ) {
+		return 0;
+	}
+
+	return len;
 }
 
 } // namespace smt32_internal_flash
