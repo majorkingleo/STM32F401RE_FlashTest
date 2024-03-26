@@ -6,6 +6,7 @@
  */
 #include "main_app.h"
 #include "SimpleOutDebug.h"
+#include "stm32f401_flash_config.h"
 #include <stm32f4xx_hal.h>
 #include <array>
 #include <span>
@@ -19,6 +20,7 @@
 
 using namespace Tools;
 
+// pointer to flash space
 volatile uint8_t flashFsData[112*1024] __attribute__ ((section(".flashfs_data")));
 
 std::array<std::byte,16*1024> buffer;
