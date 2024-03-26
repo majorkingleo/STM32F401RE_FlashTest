@@ -23,15 +23,30 @@ using namespace Tools;
 // pointer to flash space, automatically mapped by processor
 volatile uint8_t flashFsData[112*1024] __attribute__ ((section(".flashfs_data")));
 
-static const char MESSAGE_INIT_NO_HAL[] { "Message 1, written before HAL init." };
+static const char MESSAGE1_INIT_NO_HAL[] { "Message 1, written before HAL init." };
+static const char MESSAGE2[] { "Message 2, write accross sectors." };
+static const unsigned MESSAGE2_OFFSET = 16*1024-10;
+
+static const char MESSAGE3[] { "Message 3, write accross sectors with different size." };
+static const unsigned MESSAGE3_OFFSET = 16*1024*3-10;
 
 namespace {
 	std::span<const std::byte> to_span( const char* data ) {
-		return std::span<const std::byte>(reinterpret_cast<const std::byte*>(data), strlen(data));
+		return std::span<const std::byte>(reinterpret_cast<const std::byte*>(data), strlen(data)+1);
+	}
+
+	std::string to_string( const std::span<std::byte> & data ) {
+		return reinterpret_cast<const char*>(data.data());
 	}
 } // namespace
 
 
+//////////// Test 1: Write to flash before HAL_Init //////////////
+
+/**
+ * This will be called before HAL_Init() was called,
+ * to proof, that no system clock is needed.
+ */
 void test_write_message_no_hal_init_no_clock_init_1()
 {
 	using namespace stm32_internal_flash;
@@ -42,428 +57,67 @@ void test_write_message_no_hal_init_no_clock_init_1()
 	STM32InternalFlashHalRaw raw_driver( conf );
 	GenericFlashDriver driver( raw_driver );
 
-	//driver.write(0, std::span<const char>(MESSAGE_INIT_NO_HAL));
-	driver.write(0, to_span(MESSAGE_INIT_NO_HAL));
+	driver.write(0, to_span(MESSAGE1_INIT_NO_HAL));
 }
 
-
-#if 0
-std::array<std::byte,16*1024> buffer;
-extern uint32_t _flashfs_data_start;
-extern uint32_t _flashfs_data_end;
-
-void Write_Flash( const std::span<std::byte,16*1024> & buffer )
-{
-	FLASH_EraseInitTypeDef EraseInitStruct {};
-	uint32_t PAGEError = 0;
-
-	EraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS;
-	//EraseInitStruct.Banks     = FLASH_BANK_1;
-	EraseInitStruct.Sector	  = FLASH_SECTOR_1;
-	EraseInitStruct.NbSectors = 1;
-	EraseInitStruct.VoltageRange = VOLTAGE_RANGE_3;
-
-	HAL_FLASH_Unlock();
-
-	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP |
-			               FLASH_FLAG_OPERR |
-						   FLASH_FLAG_WRPERR |
-						   FLASH_FLAG_PGAERR |
-						   FLASH_FLAG_PGSERR |
-						   FLASH_FLAG_PGPERR |
-						   FLASH_SR_RDERR |
-						   FLASH_SR_BSY );
-
-	if (HAL_FLASHEx_Erase(&EraseInitStruct, &PAGEError) != HAL_OK) {
-		CPPDEBUG( "erasing flash page failed!");
-		return;
-	}
-
-	using data_t = uint32_t;
-	constexpr uint32_t data_step_size = sizeof(data_t);
-
-	for( uint32_t offset = 0; offset <= buffer.size() - data_step_size; offset += data_step_size ) {
-		std::byte *target_address = reinterpret_cast<std::byte*>(&_flashfs_data_start);
-		target_address += offset;
-		data_t *source = reinterpret_cast<data_t*>(buffer.data() + offset);
-		uint64_t aligned_source_data = *source;
-		HAL_StatusTypeDef ret = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
-												  reinterpret_cast<uint32_t>(target_address),
-												  aligned_source_data );
-
-		if( ret != HAL_OK ) {
-
-			uint32_t error = HAL_FLASH_GetError();
-
-			if( error & HAL_FLASH_ERROR_RD ) {
-				CPPDEBUG( "HAL_FLASH_ERROR_RD" );
-			}
-			if( error & HAL_FLASH_ERROR_PGS ) {
-				CPPDEBUG( "HAL_FLASH_ERROR_PGS" );
-			}
-			if( error & HAL_FLASH_ERROR_PGP ) {
-				CPPDEBUG( "HAL_FLASH_ERROR_PGP") ;
-			}
-			if(  error & HAL_FLASH_ERROR_PGA ) {
-				CPPDEBUG( "HAL_FLASH_ERROR_PGA" );
-			}
-			if( error & HAL_FLASH_ERROR_WRP ) {
-				CPPDEBUG( "HAL_FLASH_ERROR_WRP" );
-			}
-			if( error & HAL_FLASH_ERROR_OPERATION ) {
-				CPPDEBUG( "HAL_FLASH_ERROR_OPERATION" );
-			}
-
-			CPPDEBUG( format( "writing flash page failed at offset: %d Error Code: 0x%X", offset, HAL_FLASH_GetError() ) );
-			break;
-		}
-
-	}
-
-	HAL_FLASH_Lock();
-}
-
-
-/*
- * Flash module organization (STM32F401xB/C and STM32F401xD/E)
- * Block Name Block base addresses Size
- *
- * Sector 0 0x0800 0000 - 0x0800 3FFF 16 Kbytes
- * Sector 1 0x0800 4000 - 0x0800 7FFF 16 Kbytes
- * Sector 2 0x0800 8000 - 0x0800 BFFF 16 Kbytes
- * Sector 3 0x0800 C000 - 0x0800 FFFF 16 Kbytes
- * Sector 4 0x0801 0000 - 0x0801 FFFF 64 Kbytes
- * Sector 5 0x0802 0000 - 0x0803 FFFF 128 Kbytes
- * Sector 6 0x0804 0000 - 0x0805 FFFF 128 Kbytes
- * Sector 7 0x0806 0000 - 0x0807 FFFF 128 Kbytes
+/**
+ * This function is called in main, and reads and verifies the
+ * message. For UART output HAL and sysclock is needed.
  */
-
-void test_internal_flash_driver_raw()
-{
-	using namespace stm32_internal_flash;
-
-	Configuration::Sector sectors[] = {
-			/*
-	  {
-		FLASH_SECTOR_1,
-		16*1024,
-		0x08004000
-	  },
-	  {
-		FLASH_SECTOR_2,
-		16*1024,
-		0x08008000
-	  },
-	  {
-		FLASH_SECTOR_3,
-		16*1024,
-		0x0800C000
-	  },*/
-
-		{
-			FLASH_SECTOR_4,
-			64*1024,
-			0x08010000
-		},
-	};
-
-	Configuration conf;
-	conf.data_ptr = reinterpret_cast<std::byte*>(&_flashfs_data_start);
-	conf.used_sectors = sectors;
-
-	static std::array<std::byte,16*1024> buffer{};
-	snprintf( (char*)buffer.data(), buffer.size(), "%s", "Hello World2" );
-
-	STM32InternalFlashHalRaw raw_driver( conf );
-
-	if( !raw_driver ) {
-		CPPDEBUG( "initializing raw driver failed" );
-		return;
-	}
-/*
-	CPPDEBUG( "erasing" );
-	if( !raw_driver.erase_page_by_page_startaddress( sectors[0].start_address, sectors[0].size ) ) {
-		CPPDEBUG( "erasing page failed" );
-		return;
-	}
-
-	CPPDEBUG( "writing" );
-	std::size_t data_written = raw_driver.write_page(0, buffer);
-	if( data_written != buffer.size() ) {
-		CPPDEBUG( "writing page failed" );
-		return;
-	}
-*/
-	CPPDEBUG( "reading" );
-	static std::array<std::byte,100> read_buffer{};
-	std::span<std::byte> sread_buffer( read_buffer );
-	raw_driver.read_page( 0, sread_buffer );
-
-	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
-}
-
-void test_internal_flash_driver_generic()
-{
-	using namespace stm32_internal_flash;
-
-	Configuration::Sector sectors[] = {
-	  {
-		FLASH_SECTOR_1,
-		16*1024,
-		0x08004000
-	  },
-	  {
-		FLASH_SECTOR_2,
-		16*1024,
-		0x08008000
-	  },
-	  {
-		FLASH_SECTOR_3,
-		16*1024,
-		0x0800C000
-	  },
-	};
-
-	Configuration conf;
-	conf.data_ptr = reinterpret_cast<std::byte*>(&_flashfs_data_start);
-	conf.used_sectors = sectors;
-
-	STM32InternalFlashHalRaw raw_driver( conf );
-	GenericFlashDriver driver( raw_driver );
-
-	static std::array<std::byte,100> read_buffer{};
-	std::span<std::byte> sread_buffer( read_buffer );
-	std::size_t len = 0;
-
-#if 0
-	char buffer[] { "Hello World3. This is Cool! Stuff." };
-	std::span<std::byte> span_buffer( (std::byte*)buffer, std::size(buffer) );
-
-	CPPDEBUG( "writing" );
-	len = driver.write(0, span_buffer);
-	if( len != span_buffer.size() ) {
-		CPPDEBUG( format( "writing data failed. Len: %d", len )  );
-		return;
-	}
-
-	CPPDEBUG( "reading" );
-	len = driver.read( 0, sread_buffer );
-	if( len != sread_buffer.size() ) {
-		CPPDEBUG( "reading failed" );
-		return;
-	}
-
-	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
-#endif
-#if 0
-	std::size_t address = driver.get_page_size() * 2 - 10;
-
-
-	char buffer2[] { "Hello World4. This is Cool! Stuff. YYY3" };
-	std::span<std::byte> span_buffer2( (std::byte*)buffer2, std::size(buffer2) );
-
-	CPPDEBUG( "writing" );
-	len = driver.write(address, span_buffer2);
-	if( len != span_buffer2.size() ) {
-		CPPDEBUG( format( "writing data failed. Len: %d", len )  );
-		return;
-	}
-
-
-	CPPDEBUG( "reading" );
-	strcpy( (char*)sread_buffer.data(), "XXXXXXXXXXXXXXXXXXXX" );
-	len = driver.read( address, sread_buffer );
-	if( len != sread_buffer.size() ) {
-		CPPDEBUG( "reading failed" );
-		return;
-	}
-
-
-	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
-#endif
-
-	std::size_t address = driver.get_page_size() - 10;
-	std::vector<std::byte> big_buffer(16*1024+100);
-
-	strcpy( (char*)&big_buffer[0], "Test4XXXXXXXXXXXXXXXXXXXXYYYYYYYYYYYYYYYYY" );
-	std::string test_text = "Test5ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ1";
-	const unsigned text_buffer_offset = big_buffer.size()-test_text.size()-1;
-	strcpy( (char*)&big_buffer[text_buffer_offset], test_text.c_str()  );
-	std::span<std::byte> span_buffer3( &big_buffer[0], big_buffer.size() );
-
-	CPPDEBUG( "writing" );
-	len = driver.write(address, span_buffer3);
-	if( len != span_buffer3.size() ) {
-		CPPDEBUG( format( "writing data failed. Len: %d", len )  );
-		return;
-	}
-
-
-	CPPDEBUG( "reading" );
-	strcpy( (char*)sread_buffer.data(), "XXXXXXXXXXXXXXXXXXXX" );
-
-	len = driver.read( address, sread_buffer );
-	if( len != sread_buffer.size() ) {
-		CPPDEBUG( "reading failed" );
-		return;
-	}
-
-	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
-	std::span<std::byte> sread_buffer2 = sread_buffer.subspan(0, test_text.size());
-
-	len = driver.read( address + text_buffer_offset, sread_buffer2 );
-	if( len != sread_buffer2.size() ) {
-		CPPDEBUG( "reading failed" );
-		return;
-	}
-
-	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
-}
-
-
-void test_write_message_no_hal_init_no_clock_init_1()
-{
-	using namespace stm32_internal_flash;
-
-	Configuration::Sector sectors[] = {
-	  {
-		FLASH_SECTOR_1,
-		16*1024,
-		0x08004000
-	  },
-	  {
-		FLASH_SECTOR_2,
-		16*1024,
-		0x08008000
-	  },
-	  {
-		FLASH_SECTOR_3,
-		16*1024,
-		0x0800C000
-	  },
-	};
-
-	Configuration conf;
-	conf.data_ptr = reinterpret_cast<std::byte*>(&_flashfs_data_start);
-	conf.used_sectors = sectors;
-
-	STM32InternalFlashHalRaw raw_driver( conf );
-	GenericFlashDriver driver( raw_driver );
-
-	static std::array<std::byte,100> read_buffer{};
-	std::span<std::byte> sread_buffer( read_buffer );
-	std::size_t len = 0;
-
-
-	std::size_t address = driver.get_page_size() - 10;
-	std::vector<std::byte> big_buffer(16*1024+100);
-
-	strcpy( (char*)&big_buffer[0]99, "Test4XXXXXXXXXXXXXXXXXXXXYYYYYYYYYYYYYYYYY" );
-	std::string test_text = "Test6_NOHALTEST_NO_HAL_TEST_NO_HAL_TEST_NO_HAL";
-	const unsigned text_buffer_offset = big_buffer.size()-test_text.size()-1;
-	strcpy( (char*)&big_buffer[text_buffer_offset], test_text.c_str()  );
-	std::span<std::byte> span_buffer3( &big_buffer[0], big_buffer.size() );
-
-	len = driver.write(address, span_buffer3);
-	if( len != span_buffer3.size() ) {
-		return;
-	}
-}
-
 void test_write_message_no_hal_init_no_clock_init_2()
 {
 	using namespace stm32_internal_flash;
 
-	Configuration::Sector sectors[] = {
-	  {
-		FLASH_SECTOR_1,
-		16*1024,
-		0x08004000
-	  },
-	  {
-		FLASH_SECTOR_2,
-		16*1024,
-		0x08008000
-	  },
-	  {
-		FLASH_SECTOR_3,
-		16*1024,
-		0x0800C000
-	  },
-	};
-
 	Configuration conf;
-	conf.data_ptr = reinterpret_cast<std::byte*>(&_flashfs_data_start);
-	conf.used_sectors = sectors;
+	conf.used_sectors = flash_fs_16k_sectors;
 
 	STM32InternalFlashHalRaw raw_driver( conf );
 	GenericFlashDriver driver( raw_driver );
 
-	static std::array<std::byte,100> read_buffer{};
-	std::span<std::byte> sread_buffer( read_buffer );
-	std::size_t len = 0;
-	std::size_t address = driver.get_page_size() - 10;
+	std::array<std::byte,50> buffer = {};
+	std::span<std::byte> read_span(buffer);
 
-	CPPDEBUG( "reading" );
-	strcpy( (char*)sread_buffer.data(), "XXXXXXXXXXXXXXXXXXXX" );
+	driver.read(0,read_span);
+	std::string sread = to_string(read_span);
 
-	len = driver.read( address, sread_buffer );
-	if( len != sread_buffer.size() ) {
-		CPPDEBUG( "reading failed" );
-		return;
-	}
-
-	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
-	std::span<std::byte> sread_buffer2 = sread_buffer.subspan(0, 46);
-
-	std::vector<std::byte> big_buffer(16*1024+100);
-	const unsigned text_buffer_offset = big_buffer.size()-46-1;
-	len = driver.read( address + text_buffer_offset, sread_buffer2 );
-	if( len != sread_buffer2.size() ) {
-		CPPDEBUG( "reading failed" );
-		return;
-	}
-
-	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+	CPPDEBUG( format("%s: \"%s\" => %s", __FUNCTION__, sread, sread == MESSAGE1_INIT_NO_HAL ? "Ok" : "ERROR" ));
 }
 
-void test_JBOD_driver()
+
+void test_generic()
 {
 	using namespace stm32_internal_flash;
 
-	Configuration::Sector sectors_16k[] = {
-	  {
-		FLASH_SECTOR_3,
-		16*1024,
-		0x0800C000
-	  },
-	};
+	Configuration conf;
+	conf.used_sectors = flash_fs_16k_sectors;
+
+	STM32InternalFlashHalRaw raw_driver( conf );
+	GenericFlashDriver driver( raw_driver );
+
+	driver.write(MESSAGE2_OFFSET, to_span(MESSAGE2));
+
+	std::array<std::byte,50> buffer = {};
+	std::span<std::byte> read_span(buffer);
+
+	driver.read(MESSAGE2_OFFSET,read_span);
+	std::string sread = to_string(read_span);
+
+	CPPDEBUG( format("%s: \"%s\" => %s", __FUNCTION__, sread, sread == MESSAGE2 ? "Ok" : "ERROR" ));
+}
+
+void test_jbod()
+{
+	using namespace stm32_internal_flash;
 
 	Configuration conf_16k;
-	conf_16k.used_sectors = sectors_16k;
-
+	conf_16k.used_sectors = flash_fs_16k_sectors;
 	STM32InternalFlashHalRaw raw_driver_16k( conf_16k );
 	GenericFlashDriver driver_16k( raw_driver_16k );
 
-
-	Configuration::Sector sectors_64k[] = {
-	  {
-		FLASH_SECTOR_4,
-		64*1024,
-		0x08010000
-	  },
-	};
-
 	Configuration conf_64k;
-	conf_64k.used_sectors = sectors_64k;
-
+	conf_64k.used_sectors = flash_fs_64k_sectors;
 	STM32InternalFlashHalRaw raw_driver_64k( conf_64k );
 	GenericFlashDriver driver_64k( raw_driver_64k );
-
-	static std::array<std::byte,100> read_buffer{};
-	std::span<std::byte> sread_buffer( read_buffer );
-	std::size_t len = 0;
-
 
 	MemoryInterface* drivers_array[] = {
 		&driver_16k,
@@ -473,48 +127,20 @@ void test_JBOD_driver()
 
 	JBODGenericFlashDriver driver( drivers_array );
 
-	// disable restoring unaligen data, since we have not
-	// enough RAM to do this
-	driver.set(MemoryInterface::Property::RestoreDataOnUnaligendWrites(false));
+	// We have not enough RAM to allocate a buffer of 64k,
+	// so turn of restoring data. Now on write the whole page will be
+	// erased.
+	driver.set( JBODGenericFlashDriver::Property::RestoreDataOnUnaligendWrites(false) );
+	driver.write(MESSAGE3_OFFSET, to_span(MESSAGE3));
 
-	std::size_t address = driver_16k.get_page_size() - 10;
-	std::vector<std::byte> big_buffer(1024+100);
+	std::array<std::byte,100> buffer = {};
+	std::span<std::byte> read_span(buffer);
 
-	strcpy( (char*)&big_buffer[0], "Test7XXXXXXXXXXXXXXXXXXXXYYYYYYYYYYYYYYYYY" );
-	std::string test_text = "Test7_BUNCH_OF_DISKS_BUNCH_OF_DISCS_BUNCH_OF_DISCS_1";
-	const unsigned text_buffer_offset = big_buffer.size()-test_text.size()-1;
-	strcpy( (char*)&big_buffer[text_buffer_offset], test_text.c_str()  );
-	std::span<std::byte> span_buffer3( &big_buffer[0], big_buffer.size() );
+	driver.read(MESSAGE3_OFFSET,read_span);
+	std::string sread = to_string(read_span);
 
-	CPPDEBUG( "writing" );
-	len = driver.write(address, span_buffer3);
-	if( len != span_buffer3.size() ) {
-		CPPDEBUG( format( "writing data failed. Len: %d", len )  );
-		return;
-	}
-
-
-	CPPDEBUG( "reading" );
-	strcpy( (char*)sread_buffer.data(), "XXXXXXXXXXXXXXXXXXXX" );
-
-	len = driver.read( address, sread_buffer );
-	if( len != sread_buffer.size() ) {
-		CPPDEBUG( "reading failed" );
-		return;
-	}
-
-	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
-	std::span<std::byte> sread_buffer2 = sread_buffer.subspan(0, test_text.size());
-
-	len = driver.read( address + text_buffer_offset, sread_buffer2 );
-	if( len != sread_buffer2.size() ) {
-		CPPDEBUG( "reading failed" );
-		return;
-	}
-
-	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
+	CPPDEBUG( format("%s: \"%s\" => %s", __FUNCTION__, sread, sread == MESSAGE3 ? "Ok" : "ERROR" ));
 }
-#endif
 
 void main_app()
 {
@@ -522,34 +148,11 @@ void main_app()
 	Tools::x_debug = &out_debug;
 
 	CPPDEBUG( "start" );
-#if 0
-	std::array<std::byte,16*1024> buffer{};
-	snprintf( (char*)buffer.data(), buffer.size(), "%s", "Hello World" );
-#endif
-#if 0
-	void *ta = reinterpret_cast<std::byte*>(&_flashfs_data_start);
-	std::byte *te = reinterpret_cast<std::byte*>(&_flashfs_data_end);
-	CPPDEBUG( format( "target address: %p", ta ) );
 
-	std::size_t space = _flashfs_data_end - _flashfs_data_start;
-	std::byte *double_word_aligned = (std::byte*)std::align( alignof(uint64_t), sizeof(std::byte), ta, space );
-	CPPDEBUG( format( "uint64_t aligned: %p", double_word_aligned ) );
+	test_write_message_no_hal_init_no_clock_init_2();
+	test_generic();
+	test_jbod();
 
-
-	// CPPDEBUG( "writing data" );
-	// Write_Flash( buffer );
-
-	CPPDEBUG( format("reading data at: %p", (void*)flashFsData) );
-	char acBuffer[100];
-	memcpy( acBuffer, (void*)flashFsData, 100 );
-	acBuffer[99]='\0';
-	CPPDEBUG( acBuffer );
-#endif
-
-	// test_write_message_no_hal_init_no_clock_init_2();
-	// test_internal_flash_driver_raw();
-	// test_internal_flash_driver_generic();
-	// test_JBOD_driver();
 
 	while( true ) {}
 }
