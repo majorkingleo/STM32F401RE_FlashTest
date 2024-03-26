@@ -32,18 +32,6 @@ public:
 			}
 		};
 
-
-		/*
-		struct PropertyValueBooleanDefaultTrue {
-			using type_t = bool;
-			type_t value;
-
-			PropertyValueBooleanDefaultTrue( bool value_ = true ) {
-				value = value_;
-			}
-		};
-		*/
-
 		/**
 		 * Since the flash drive can erase only whole pages,
 		 * It's not possible writing only half of a page, without destroying all.
@@ -88,10 +76,6 @@ public:
 	virtual std::size_t get_page_size() const = 0;
 
 	virtual std::size_t write( std::size_t address, const std::span<const std::byte> & data ) = 0;
-
-	std::size_t write( std::size_t address, const std::span<const char> & data ) {
-		return write( address, std::span<const std::byte>(reinterpret_cast<const std::byte*>(data.data()), data.size()));
-	}
 
 	virtual std::size_t read( std::size_t address, std::span<std::byte> & data ) = 0;
 

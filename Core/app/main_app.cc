@@ -25,6 +25,12 @@ volatile uint8_t flashFsData[112*1024] __attribute__ ((section(".flashfs_data"))
 
 static const char MESSAGE_INIT_NO_HAL[] { "Message 1, written before HAL init." };
 
+namespace {
+	std::span<const std::byte> to_span( const char* data ) {
+		return std::span<const std::byte>(reinterpret_cast<const std::byte*>(data), strlen(data));
+	}
+} // namespace
+
 
 void test_write_message_no_hal_init_no_clock_init_1()
 {
@@ -36,7 +42,8 @@ void test_write_message_no_hal_init_no_clock_init_1()
 	STM32InternalFlashHalRaw raw_driver( conf );
 	GenericFlashDriver driver( raw_driver );
 
-	driver.write(0, const std::span<const char>(MESSAGE_INIT_NO_HAL));
+	//driver.write(0, std::span<const char>(MESSAGE_INIT_NO_HAL));
+	driver.write(0, to_span(MESSAGE_INIT_NO_HAL));
 }
 
 
