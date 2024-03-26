@@ -24,7 +24,7 @@ public:
 
 	virtual bool erase_page( std::size_t address, std::size_t size ) = 0;
 
-	virtual std::size_t write_page( std::size_t address, const std::span<std::byte> & buffer ) = 0;
+	virtual std::size_t write_page( std::size_t address, const std::span<const std::byte> & buffer ) = 0;
 
 	virtual std::size_t read_page( std::size_t address, std::span<std::byte> & buffer ) = 0;
 };

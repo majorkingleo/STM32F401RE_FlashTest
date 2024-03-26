@@ -45,7 +45,7 @@ public:
 	/**
 	 * writes data, aligned or unaligned. Erase is called automatically before
 	 */
-	std::size_t write( std::size_t address, const std::span<std::byte> & data ) override;
+	std::size_t write( std::size_t address, const std::span<const std::byte> & data ) override;
 	std::size_t read( std::size_t address, std::span<std::byte> & data ) override;
 
 	bool erase( std::size_t address, std::size_t size ) override;

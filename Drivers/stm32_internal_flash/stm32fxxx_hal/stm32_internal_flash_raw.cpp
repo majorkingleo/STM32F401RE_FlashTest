@@ -98,7 +98,7 @@ std::optional<Configuration::Sector> STM32InternalFlashHalRaw::get_sector_from_a
 	return {};
 }
 
-std::size_t STM32InternalFlashHalRaw::write_page( std::size_t address, const std::span<std::byte> & buffer )
+std::size_t STM32InternalFlashHalRaw::write_page( std::size_t address, const std::span<const std::byte> & buffer )
 {
 	if( HAL_FLASH_Unlock() != HAL_OK) {
 		error = Error(Error::ErrorUnlockingFlash);
@@ -109,7 +109,7 @@ std::size_t STM32InternalFlashHalRaw::write_page( std::size_t address, const std
 
 	clear_flags();
 
-	auto do_write = [this]( uint32_t TypeProgram, auto data_type, std::size_t address, const std::span<std::byte> & buffer ) {
+	auto do_write = [this]( uint32_t TypeProgram, auto data_type, std::size_t address, const std::span<const std::byte> & buffer ) {
 		using data_t = decltype(data_type);
 		constexpr uint32_t data_step_size = sizeof(data_t);
 		std::size_t size_written = 0;
@@ -118,7 +118,7 @@ std::size_t STM32InternalFlashHalRaw::write_page( std::size_t address, const std
 		for( uint32_t offset = 0; offset <= buffer.size() - data_step_size; offset += data_step_size ) {
 
 			std::size_t target_address = start_offset + address + offset;
-			data_t *source = reinterpret_cast<data_t*>(buffer.data() + offset);
+			const data_t *source = reinterpret_cast<const data_t*>(buffer.data() + offset);
 			uint64_t aligned_source_data = *source;
 
 			HAL_StatusTypeDef ret = HAL_FLASH_Program(TypeProgram,

@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <tuple>
 #include <variant>
+#include <string.h>
 
 namespace stm32_internal_flash {
 
@@ -86,7 +87,12 @@ public:
 
 	virtual std::size_t get_page_size() const = 0;
 
-	virtual std::size_t write( std::size_t address, const std::span<std::byte> & data ) = 0;
+	virtual std::size_t write( std::size_t address, const std::span<const std::byte> & data ) = 0;
+
+	std::size_t write( std::size_t address, const std::span<const char> & data ) {
+		return write( address, std::span<const std::byte>(reinterpret_cast<const std::byte*>(data.data()), data.size()));
+	}
+
 	virtual std::size_t read( std::size_t address, std::span<std::byte> & data ) = 0;
 
 	virtual bool erase( std::size_t address, std::size_t size ) = 0;

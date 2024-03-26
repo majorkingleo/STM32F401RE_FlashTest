@@ -28,7 +28,7 @@ std::size_t GenericFlashDriver::get_page_size() const
 	return raw_driver.get_page_size();
 }
 
-std::size_t GenericFlashDriver::write( std::size_t address, const std::span<std::byte> & data )
+std::size_t GenericFlashDriver::write( std::size_t address, const std::span<const std::byte> & data )
 {
 	auto data_int = data;
 	const std::size_t page_size = get_page_size();
@@ -89,7 +89,7 @@ std::size_t GenericFlashDriver::write( std::size_t address, const std::span<std:
 	return len_written;
 }
 
-std::size_t GenericFlashDriver::write_unaligned_first_page( std::size_t address, const std::span<std::byte> & data )
+std::size_t GenericFlashDriver::write_unaligned_first_page( std::size_t address, const std::span<const std::byte> & data )
 {
 	const std::size_t page_size = get_page_size();
 	const std::size_t size_to_read_from_page = address % page_size;
@@ -148,7 +148,7 @@ std::size_t GenericFlashDriver::write_unaligned_first_page( std::size_t address,
 	return len;
 }
 
-std::size_t GenericFlashDriver::write_unaligned_last_page( std::size_t address, const std::span<std::byte> & data )
+std::size_t GenericFlashDriver::write_unaligned_last_page( std::size_t address, const std::span<const std::byte> & data )
 {
 	const std::size_t page_size = get_page_size();
 
@@ -219,7 +219,7 @@ bool GenericFlashDriver::erase( std::size_t address, std::size_t size )
 	return raw_driver.erase_page(address, size);
 }
 
-std::size_t GenericFlashDriver::write_unaligned_first_page_no_buffer( std::size_t address, const std::span<std::byte> & data )
+std::size_t GenericFlashDriver::write_unaligned_first_page_no_buffer( std::size_t address, const std::span<const std::byte> & data )
 {
 	const std::size_t page_size = get_page_size();
 	const std::size_t size_to_read_from_page = address % page_size;
@@ -242,7 +242,7 @@ std::size_t GenericFlashDriver::write_unaligned_first_page_no_buffer( std::size_
 	return len;
 }
 
-std::size_t GenericFlashDriver::write_unaligned_last_page_no_buffer( std::size_t address, const std::span<std::byte> & data )
+std::size_t GenericFlashDriver::write_unaligned_last_page_no_buffer( std::size_t address, const std::span<const std::byte> & data )
 {
 	const std::size_t page_size = get_page_size();
 

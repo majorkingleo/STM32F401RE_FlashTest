@@ -102,14 +102,14 @@ std::size_t JBODGenericFlashDriver::read_write( std::size_t address, SPAN & data
 	}
 
 	address -= info.address_offset;
-	std::span<std::byte> local_data = data;
+	auto local_data = data;
 	std::size_t len = 0;
 
 	for( unsigned idx = info.driver_idx; idx < drivers.size(); idx++ ) {
 		MemoryInterface *driver = drivers[idx];
 
 		std::size_t local_size = std::min( driver->get_size() - address, local_data.size() );
-		std::span<std::byte> sub_data = local_data.subspan(0, local_size);
+		auto sub_data = local_data.subspan(0, local_size);
 
 		std::size_t len_written = func( driver, address, sub_data );
 		len += len_written;
@@ -130,9 +130,9 @@ std::size_t JBODGenericFlashDriver::read_write( std::size_t address, SPAN & data
 	return len;
 }
 
-std::size_t JBODGenericFlashDriver::write( std::size_t address, const std::span<std::byte> & data )
+std::size_t JBODGenericFlashDriver::write( std::size_t address, const std::span<const std::byte> & data )
 {
-	auto write_func=[]( MemoryInterface *driver, std::size_t address, const std::span<std::byte> & data ) {
+	auto write_func=[]( MemoryInterface *driver, std::size_t address, const std::span<const std::byte> & data ) {
 		return driver->write( address, data );
 	};
 

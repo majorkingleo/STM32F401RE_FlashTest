@@ -20,9 +20,27 @@
 
 using namespace Tools;
 
-// pointer to flash space
+// pointer to flash space, automatically mapped by processor
 volatile uint8_t flashFsData[112*1024] __attribute__ ((section(".flashfs_data")));
 
+static const char MESSAGE_INIT_NO_HAL[] { "Message 1, written before HAL init." };
+
+
+void test_write_message_no_hal_init_no_clock_init_1()
+{
+	using namespace stm32_internal_flash;
+
+	Configuration conf;
+	conf.used_sectors = flash_fs_16k_sectors;
+
+	STM32InternalFlashHalRaw raw_driver( conf );
+	GenericFlashDriver driver( raw_driver );
+
+	driver.write(0, const std::span<const char>(MESSAGE_INIT_NO_HAL));
+}
+
+
+#if 0
 std::array<std::byte,16*1024> buffer;
 extern uint32_t _flashfs_data_start;
 extern uint32_t _flashfs_data_end;
@@ -333,7 +351,7 @@ void test_write_message_no_hal_init_no_clock_init_1()
 	std::size_t address = driver.get_page_size() - 10;
 	std::vector<std::byte> big_buffer(16*1024+100);
 
-	strcpy( (char*)&big_buffer[0], "Test4XXXXXXXXXXXXXXXXXXXXYYYYYYYYYYYYYYYYY" );
+	strcpy( (char*)&big_buffer[0]99, "Test4XXXXXXXXXXXXXXXXXXXXYYYYYYYYYYYYYYYYY" );
 	std::string test_text = "Test6_NOHALTEST_NO_HAL_TEST_NO_HAL_TEST_NO_HAL";
 	const unsigned text_buffer_offset = big_buffer.size()-test_text.size()-1;
 	strcpy( (char*)&big_buffer[text_buffer_offset], test_text.c_str()  );
@@ -489,6 +507,7 @@ void test_JBOD_driver()
 
 	CPPDEBUG( format("reading data: '%s'", (char*)read_buffer.data()) );
 }
+#endif
 
 void main_app()
 {
@@ -496,10 +515,10 @@ void main_app()
 	Tools::x_debug = &out_debug;
 
 	CPPDEBUG( "start" );
-
+#if 0
 	std::array<std::byte,16*1024> buffer{};
 	snprintf( (char*)buffer.data(), buffer.size(), "%s", "Hello World" );
-
+#endif
 #if 0
 	void *ta = reinterpret_cast<std::byte*>(&_flashfs_data_start);
 	std::byte *te = reinterpret_cast<std::byte*>(&_flashfs_data_end);
@@ -520,10 +539,10 @@ void main_app()
 	CPPDEBUG( acBuffer );
 #endif
 
-	test_write_message_no_hal_init_no_clock_init_2();
+	// test_write_message_no_hal_init_no_clock_init_2();
 	// test_internal_flash_driver_raw();
-	test_internal_flash_driver_generic();
-	test_JBOD_driver();
+	// test_internal_flash_driver_generic();
+	// test_JBOD_driver();
 
 	while( true ) {}
 }
