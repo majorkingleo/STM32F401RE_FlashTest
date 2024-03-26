@@ -448,7 +448,7 @@ void test_JBOD_driver()
 
 	// disable restoring unaligen data, since we have not
 	// enough RAM to do this
-	driver.restore_data_on_unaligned_writes(false);
+	driver.set(MemoryInterface::Property::RestoreDataOnUnaligendWrites(false));
 
 	std::size_t address = driver_16k.get_page_size() - 10;
 	std::vector<std::byte> big_buffer(1024+100);

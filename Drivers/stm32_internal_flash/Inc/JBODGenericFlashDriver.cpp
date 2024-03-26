@@ -150,32 +150,11 @@ std::size_t JBODGenericFlashDriver::read( std::size_t address, std::span<std::by
 	return read_write( address, data, read_func );
 }
 
-void JBODGenericFlashDriver::restore_data_on_unaligned_writes( bool state ) {
-	for( MemoryInterface* driver : drivers ) {
-		driver->restore_data_on_unaligned_writes(state);
-	}
-}
-
-bool JBODGenericFlashDriver::can_restore_data_on_unaligned_writes() const
+void JBODGenericFlashDriver::properties_changed( properties_storage_t old_properties )
 {
 	for( MemoryInterface* driver : drivers ) {
-		if( !driver->can_restore_data_on_unaligned_writes() ) {
-			return false;
-		}
+		driver->set(properties);
 	}
-
-	return true;
-}
-
-bool JBODGenericFlashDriver::get_restore_data_on_unaligned_writes() const
-{
-	for( MemoryInterface* driver : drivers ) {
-		if( !driver->get_restore_data_on_unaligned_writes() ) {
-			return false;
-		}
-	}
-
-	return true;
 }
 
 } // namespace stm32_internal_flash
