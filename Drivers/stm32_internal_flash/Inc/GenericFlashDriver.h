@@ -14,18 +14,32 @@
 
 namespace stm32_internal_flash {
 
-class GenericFlashDriver : public MemoryInterface
+class GenericFlashDriverBase
 {
+public:
+	struct Property
+	{
+		// buffer that has to be at least PAGE_SIZE size, will be used on unaligned writes,
+		// to restore the other data. Will not be used if RestoreDataOnUnaligendWrites is set to false.
+		// GenericFlashDriver::set( GenericFlashDriver::Property::CanRestoreDataOnUnaligendWrites( false ) );
+		struct PageBuffer : public PropertyTypes::PropertyValue<std::span<std::byte>*> {};
+	};
+};
+
+class GenericFlashDriver : public GenericFlashDriverBase, public MemoryInterface, public PropertiesBase<GenericFlashDriverBase::Property::PageBuffer>
+{
+private:
+	using private_props_t = PropertiesBase<GenericFlashDriverBase::Property::PageBuffer>;
+
 protected:
 	RawDriverInterface & raw_driver;
-	std::span<std::byte> * page_buffer; // buffer that has to be PAGE_SIZE size
 
 public:
 	/**
 	 * page_buffer: span that has to be PAGE_SIZE large. If null alloca is used
 	 *              to get the buffer on stack. Be careful, this can be a large value.
 	 */
-	GenericFlashDriver( RawDriverInterface & raw_driver_, std::span<std::byte> * page_buffer_ = nullptr );
+	GenericFlashDriver( RawDriverInterface & raw_driver_ );
 
 	std::size_t get_size() const override;
 	std::size_t get_page_size() const override;

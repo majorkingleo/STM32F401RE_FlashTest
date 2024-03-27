@@ -13,6 +13,7 @@
 #include <variant>
 #include <functional>
 #include <string.h>
+#include <concepts>
 
 namespace stm32_internal_flash {
 
@@ -30,7 +31,12 @@ struct PropertyValueBooleanDefaultTrue : public PropertyValue<bool> {
 	}
 };
 
+
 } // namespace PropertyTypes
+
+template <typename T, typename... U>
+concept IsAnyOf = (std::same_as<T, U> || ...);
+
 
 template <class ... Types> class PropertiesBase
 {
@@ -43,10 +49,23 @@ public:
 	properties_storage_t properties{};
 	properties_changed_func_t properties_changed_func = []( const properties_storage_t & old_properties ) {};
 
+	template<typename T>
+	concept IsPrintable = IsAnyOf<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>, Types...>;
+/*
+	template<typename U, typename... T>
+	constexpr auto contains(std::tuple<T...>) {
+	    return not std::is_same<
+	        std::integer_sequence<bool, false, std::is_same<U, T>::value...>,
+	        std::integer_sequence<bool, std::is_same<U, T>::value..., false>
+	    >::value;
+	};
+*/
+
+
 public:
 
 	template<class Prop>
-	void set( const Prop & prop ) {
+	void set( IsPrintable const Prop & prop ) {
 		std::get<Prop>(properties).value = prop.value;
 	}
 

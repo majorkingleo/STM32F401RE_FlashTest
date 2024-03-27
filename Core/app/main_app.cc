@@ -30,6 +30,12 @@ static const unsigned MESSAGE2_OFFSET = 16*1024-10;
 static const char MESSAGE3[] { "Message 3, write accross sectors with different size." };
 static const unsigned MESSAGE3_OFFSET = 16*1024*3-10;
 
+static const char MESSAGE4[] { "Message 4, write accross sectors with external buffer." };
+static const unsigned MESSAGE4_OFFSET = 16*1024-10;
+
+static std::array<std::byte,16*1024> external_buffer;
+static std::span<std::byte> span_external_buffer = std::span<std::byte>(external_buffer);
+
 namespace {
 	std::span<const std::byte> to_span( const char* data ) {
 		return std::span<const std::byte>(reinterpret_cast<const std::byte*>(data), strlen(data)+1);
@@ -142,6 +148,30 @@ void test_jbod()
 	CPPDEBUG( format("%s: \"%s\" => %s", __FUNCTION__, sread, sread == MESSAGE3 ? "Ok" : "ERROR" ));
 }
 
+void test_generic_external_buffer()
+{
+	using namespace stm32_internal_flash;
+
+	Configuration conf;
+	conf.used_sectors = flash_fs_16k_sectors;
+
+	STM32InternalFlashHalRaw raw_driver( conf );
+	GenericFlashDriver driver( raw_driver );
+
+	// use this external buffer instead of allocating the buffer on stack
+	driver.set( GenericFlashDriverBase::Property::PageBuffer{ &span_external_buffer } );
+
+	driver.write(MESSAGE4_OFFSET, to_span(MESSAGE4));
+
+	std::array<std::byte,100> buffer = {};
+	std::span<std::byte> read_span(buffer);
+
+	driver.read(MESSAGE4_OFFSET,read_span);
+	std::string sread = to_string(read_span);
+
+	CPPDEBUG( format("%s: \"%s\" => %s", __FUNCTION__, sread, sread == MESSAGE4 ? "Ok" : "ERROR" ));
+}
+
 void main_app()
 {
 	SimpleOutDebug out_debug;
@@ -152,6 +182,7 @@ void main_app()
 	test_write_message_no_hal_init_no_clock_init_2();
 	test_generic();
 	test_jbod();
+	test_generic_external_buffer();
 
 
 	while( true ) {}
