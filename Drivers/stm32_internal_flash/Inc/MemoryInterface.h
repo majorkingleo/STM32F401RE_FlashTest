@@ -21,8 +21,41 @@ namespace PropertyTypes {
 
 template<class Value> struct PropertyValue
 {
+protected:
 	using type_t = Value;
 	type_t value{};
+	std::function<void()> property_changed_func = [](){};
+
+public:
+	operator Value() const {
+		return value;
+	}
+
+	Value get() const {
+		return value;
+	}
+
+	PropertyValue & operator=( const Value & value_ ) {
+		value = value_;
+		property_changed_func();
+		return *this;
+	}
+
+	PropertyValue & operator=( const PropertyValue & other ) {
+		value = other.value;
+		// don't copy change function
+		property_changed_func();
+		return *this;
+	}
+
+	void set( const Value & value_ ) {
+		value = value_;
+		property_changed_func();
+	}
+
+	void set_property_changed_func( std::function<void()> property_changed_func_ ) {
+		property_changed_func = property_changed_func_;
+	}
 };
 
 struct PropertyValueBooleanDefaultTrue : public PropertyValue<bool> {
@@ -34,72 +67,10 @@ struct PropertyValueBooleanDefaultTrue : public PropertyValue<bool> {
 
 } // namespace PropertyTypes
 
-template <typename T, typename... U>
-concept IsAnyOf = (std::same_as<T, U> || ...);
-
-
-template <class ... Types> class PropertiesBase
+class MemoryInterface
 {
 public:
-	using properties_t = std::variant<Types...>;
-	using properties_storage_t = std::tuple<Types...>;
-	using properties_changed_func_t = std::function<void(const properties_storage_t & old_properties)>;
-
-public:
-	properties_storage_t properties{};
-	properties_changed_func_t properties_changed_func = []( const properties_storage_t & old_properties ) {};
-
-	template<typename T>
-	concept IsPrintable = IsAnyOf<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>, Types...>;
-/*
-	template<typename U, typename... T>
-	constexpr auto contains(std::tuple<T...>) {
-	    return not std::is_same<
-	        std::integer_sequence<bool, false, std::is_same<U, T>::value...>,
-	        std::integer_sequence<bool, std::is_same<U, T>::value..., false>
-	    >::value;
-	};
-*/
-
-
-public:
-
-	template<class Prop>
-	void set( IsPrintable const Prop & prop ) {
-		std::get<Prop>(properties).value = prop.value;
-	}
-
-	void set( const std::initializer_list<properties_t> & props ) {
-
-		properties_storage_t old_properties = properties;
-
-		for( const auto & prop : props ) {
-			std::visit([this]( const auto & p ) {
-				set(p);
-			}, prop );
-		}
-
-		properties_changed_func( old_properties );
-	}
-
-	void set( const properties_storage_t & new_properties ) {
-		properties_storage_t old_properties = properties;
-		properties = new_properties;
-
-		properties_changed_func( old_properties );
-	}
-
-	template<class Prop>
-	Prop::type_t get() const {
-		return std::get<std::remove_cvref_t<Prop>>(properties).value;
-	}
-};
-
-
-class MemoryInterfaceBase
-{
-public:
-	struct Property
+	struct properties_storage_t
 	{
 
 		/**
@@ -113,30 +84,36 @@ public:
 		 * If you don't have so much RAM, or just don't need it you can disable
 		 * this feature.
 		 */
-		struct RestoreDataOnUnaligendWrites : public PropertyTypes::PropertyValueBooleanDefaultTrue {};
+		PropertyTypes::PropertyValueBooleanDefaultTrue RestoreDataOnUnaligendWrites{};
 
 		/**
 		 * Set to true if the driver supports this feature
 		 */
-		struct CanRestoreDataOnUnaligendWrites : public PropertyTypes::PropertyValueBooleanDefaultTrue {};
+		PropertyTypes::PropertyValueBooleanDefaultTrue CanRestoreDataOnUnaligendWrites{};
 
 		/**
 		 * Disable automatically page erase
 		 */
-		struct AutoErasePage : public PropertyTypes::PropertyValueBooleanDefaultTrue {};
-	};
-};
+		PropertyTypes::PropertyValueBooleanDefaultTrue AutoErasePage{};
 
-class MemoryInterface :  public MemoryInterfaceBase, public PropertiesBase<MemoryInterfaceBase::Property::RestoreDataOnUnaligendWrites,
-											  	  	  	  	  	  	  	   MemoryInterfaceBase::Property::CanRestoreDataOnUnaligendWrites,
-																		   MemoryInterfaceBase::Property::AutoErasePage>
-{
+
+		void set_property_changed_func( std::function<void()> property_changed_func_ ) {
+			RestoreDataOnUnaligendWrites.set_property_changed_func(property_changed_func_);
+			CanRestoreDataOnUnaligendWrites.set_property_changed_func(property_changed_func_);
+			AutoErasePage.set_property_changed_func(property_changed_func_);
+		}
+	};
+
+	properties_storage_t properties;
+
 public:
 
-	MemoryInterface() {
-		properties_changed_func = [this](  const properties_storage_t & old_properties ) {
-			properties_changed( old_properties );
-		};
+	MemoryInterface()
+	: properties()
+	{
+		properties.set_property_changed_func([this](){
+			properties_changed();
+		});
 	}
 
 	virtual ~MemoryInterface() {}
@@ -152,8 +129,7 @@ public:
 	virtual bool erase( std::size_t address, std::size_t size ) = 0;
 
 
-	virtual void properties_changed( properties_storage_t old_properties ) {
-	}
+	virtual void properties_changed() {}
 };
 
 } // namespace smt32_internal_flash

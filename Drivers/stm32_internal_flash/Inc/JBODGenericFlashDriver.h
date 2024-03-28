@@ -62,7 +62,7 @@ private:
 	template<class SPAN, class FUNC>
 	std::size_t read_write( std::size_t address, SPAN & data, FUNC func );
 
-	void properties_changed( properties_storage_t old_properties ) override;
+	void properties_changed() override;
 };
 
 

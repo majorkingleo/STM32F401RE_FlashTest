@@ -14,7 +14,11 @@ namespace stm32_internal_flash {
 GenericFlashDriver::GenericFlashDriver( RawDriverInterface & raw_driver_ )
 : raw_driver( raw_driver_ )
 {
-	MemoryInterface::set( MemoryInterface::Property::CanRestoreDataOnUnaligendWrites( true ) );
+	properties.set_property_changed_func([this](){
+		properties_changed();
+	});
+
+	MemoryInterface::properties.CanRestoreDataOnUnaligendWrites = true;
 }
 
 std::size_t GenericFlashDriver::get_size() const
@@ -39,7 +43,7 @@ std::size_t GenericFlashDriver::write( std::size_t address, const std::span<cons
 
 		std::size_t len = 0;
 
-		if( MemoryInterface::get<MemoryInterface::Property::RestoreDataOnUnaligendWrites>() ) {
+		if( MemoryInterface::properties.RestoreDataOnUnaligendWrites ) {
 			len = write_unaligned_first_page( address, data_int.subspan( 0, data_left_on_first_page ) );
 		} else {
 			len = write_unaligned_first_page_no_buffer( address, data_int.subspan( 0, data_left_on_first_page ) );
@@ -58,7 +62,7 @@ std::size_t GenericFlashDriver::write( std::size_t address, const std::span<cons
 	page_aligned_data_len -= page_aligned_data_len % page_size;
 
 	if( page_aligned_data_len > 0 ) {
-		if( MemoryInterface::get<MemoryInterface::Property::AutoErasePage>() ) {
+		if(  MemoryInterface::properties.AutoErasePage ) {
 			if( !raw_driver.erase_page(address + len_written, page_aligned_data_len ) ) {
 				return len_written;
 			}
@@ -77,7 +81,7 @@ std::size_t GenericFlashDriver::write( std::size_t address, const std::span<cons
 
 	// last slice of data is not page aligned
 	if( len_written < data.size() ) {
-		if( MemoryInterface::get<MemoryInterface::Property::RestoreDataOnUnaligendWrites>() ) {
+		if(  MemoryInterface::properties.RestoreDataOnUnaligendWrites ) {
 			len_written += write_unaligned_last_page( address + len_written, data_int );
 		} else {
 			len_written += write_unaligned_last_page_no_buffer( address + len_written, data_int );
@@ -95,7 +99,7 @@ std::size_t GenericFlashDriver::write_unaligned_first_page( std::size_t address,
 	const std::size_t page_start_address = address - size_to_read_from_page;
 
 	std::byte *buffer = nullptr;
-	auto page_buffer = private_props_t::get<GenericFlashDriverBase::Property::PageBuffer>();
+	auto page_buffer =  properties.PageBuffer.get();
 
 	if( page_buffer ) {
 
@@ -124,7 +128,7 @@ std::size_t GenericFlashDriver::write_unaligned_first_page( std::size_t address,
 	auto rest_of_data = span_buffer.subspan( size_to_read_from_page );
 	memcpy( rest_of_data.data(), data.data(), data.size() );
 
-	if( MemoryInterface::get<MemoryInterface::Property::AutoErasePage>() ) {
+	if( MemoryInterface::properties.AutoErasePage ) {
 		// now we can erase the page and write it
 		if( !raw_driver.erase_page(page_start_address, page_size) ) {
 			return 0;
@@ -154,7 +158,7 @@ std::size_t GenericFlashDriver::write_unaligned_last_page( std::size_t address, 
 	const std::size_t page_size = get_page_size();
 
 	std::byte *buffer = nullptr;
-	auto page_buffer = private_props_t::get<GenericFlashDriverBase::Property::PageBuffer>();
+	auto page_buffer = properties.PageBuffer.get();
 
 	if( page_buffer ) {
 		buffer = page_buffer->data();
@@ -182,7 +186,7 @@ std::size_t GenericFlashDriver::write_unaligned_last_page( std::size_t address, 
 	auto rest_of_data = span_buffer.subspan( 0, data.size() );
 	memcpy( rest_of_data.data(), data.data(), data.size() );
 
-	if( MemoryInterface::get<MemoryInterface::Property::AutoErasePage>() ) {
+	if( MemoryInterface::properties.AutoErasePage ) {
 		// now we can erase the page and write it
 		if( !raw_driver.erase_page(address, page_size) ) {
 			return 0;
@@ -227,7 +231,7 @@ std::size_t GenericFlashDriver::write_unaligned_first_page_no_buffer( std::size_
 	const std::size_t size_to_read_from_page = address % page_size;
 	const std::size_t page_start_address = address - size_to_read_from_page;
 
-	if( MemoryInterface::get<MemoryInterface::Property::AutoErasePage>() ) {
+	if( MemoryInterface::properties.AutoErasePage ) {
 		// now we can erase the page and write it
 		if( !raw_driver.erase_page(page_start_address, page_size) ) {
 			return 0;
@@ -248,7 +252,7 @@ std::size_t GenericFlashDriver::write_unaligned_last_page_no_buffer( std::size_t
 {
 	const std::size_t page_size = get_page_size();
 
-	if( MemoryInterface::get<MemoryInterface::Property::AutoErasePage>() ) {
+	if( MemoryInterface::properties.AutoErasePage ) {
 		// now we can erase the page and write it
 		if( !raw_driver.erase_page(address, page_size) ) {
 			return 0;

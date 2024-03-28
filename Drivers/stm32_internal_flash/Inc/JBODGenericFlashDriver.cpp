@@ -150,10 +150,10 @@ std::size_t JBODGenericFlashDriver::read( std::size_t address, std::span<std::by
 	return read_write( address, data, read_func );
 }
 
-void JBODGenericFlashDriver::properties_changed( properties_storage_t old_properties )
+void JBODGenericFlashDriver::properties_changed()
 {
 	for( MemoryInterface* driver : drivers ) {
-		driver->set(properties);
+		driver->properties = MemoryInterface::properties;
 	}
 }
 

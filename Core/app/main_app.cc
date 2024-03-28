@@ -136,7 +136,7 @@ void test_jbod()
 	// We have not enough RAM to allocate a buffer of 64k,
 	// so turn of restoring data. Now on write the whole page will be
 	// erased.
-	driver.set( JBODGenericFlashDriver::Property::RestoreDataOnUnaligendWrites(false) );
+	driver.properties.RestoreDataOnUnaligendWrites = false;
 	driver.write(MESSAGE3_OFFSET, to_span(MESSAGE3));
 
 	std::array<std::byte,100> buffer = {};
@@ -159,7 +159,7 @@ void test_generic_external_buffer()
 	GenericFlashDriver driver( raw_driver );
 
 	// use this external buffer instead of allocating the buffer on stack
-	driver.set( GenericFlashDriverBase::Property::PageBuffer{ &span_external_buffer } );
+	driver.properties.PageBuffer = &span_external_buffer;
 
 	driver.write(MESSAGE4_OFFSET, to_span(MESSAGE4));
 
